@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Tracker 项目主页</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="author" content="dron">
+        <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <link href="css/docs.css" rel="stylesheet" media="screen">
+    </head>
+    <body data-spy="scroll" data-target=".sidebar">
+        <header>
+            <div class="container">
+                <h1>Tracker</h1>
+                <p class="lead">关注您网页的健康</p>
+            </div>
+        </header>
+
+        <div id="main">
+            <div class="container">
+                <div class="row">
+                    <div class="span3 sidebar">
+                        <ul class="nav" data-spy="affix" data-offset-top="180">
+                            <li class="active"><a href="#overview"><i class="icon-chevron-right"></i>概述</a></li>
+                            <li><a href="#scenarios"><i class="icon-chevron-right"></i>应用场景</a></li>
+                            <li><a href="#quickstart"><i class="icon-chevron-right"></i>快速开始<sup>免安装</sup></a></li>
+                            <li><a href="#features"><i class="icon-chevron-right"></i>功能说明</a></li>
+                            <li><a href="#compatibility"><i class="icon-chevron-right"></i>兼容性</a></li>
+                            <li><a href="#source">下载源码<i class="icon-chevron-right"></i></a></li>
+                            <li><a href="#todos"><i class="icon-chevron-right"></i>未来的功能</a></li>
+                            <li><a href="#feedback">反馈<i class="icon-chevron-right"></i></a></li>
+                        </ul>
+                    </div>
+
+                    <div class="span9">
+                        <div class="screenful">
+                            <h2 id="overview">1 概述</h2>
+                            <p>Tracker 是一个浏览器书签栏工具，她将被运行于其他网页之后，为了协助您了解目标网页中 JavaScript 的运行情况，包括：执行覆盖率、执行行数、是否存在执行或语法错误等信息，当你对一个目标网页使用 Tracker，他们将被呈现在像下面截图所示的一个表格当中在目标网页下边。</p>
+                            <p class="screenshot"><img src="img/screenshot.png"></p>
+                        </div>
+                        
+                        <div class="screenful">
+                            <h2 id="scenarios">2 应用场景</h2>
+
+                            <h3>2.1 冗余代码排查</h3>
+                            <p>产品的迭代速度极快，我们把大部分的时间都花在实现需求上，很少能很好地从新产品开始时就好好规划以足够强大地支持将来的功能扩展（当然和个别 PM 天马行空提需求也有一定关系），加之维护人员的轮换，日积月累，很多代码已由于“历史原因”而不敢再轻易碰。此时，Tracker 能在排查冗余代码时起到很大的帮助，当您猜测某一坨恶心代码是干某件事情时，您不妨用 Tracker 验证一下。</p>
+
+                            <h3>2.2 模块化辅助分析</h3>
+                            <p>当您的项目代码臃肿到一定程度时，也许您和我一样，会考虑将它们做些合理拆分，以达到最佳按需加载，哪些代码是网页初始化时必须的；哪些代码是辅助功能可要可不要的；哪些代码是后序功能需要拆分成按需加载的；有了 Tracker，您能够非常方便地做这些判断。</p>
+
+                            <h3>2.3 测试用例编写参考</h3>
+                            <p>每一个产品，都需要有属于它的完整的测试用例，除非您并不关心它的质量。我们通常认为：完整的测试用例最起码的要求是能覆盖到您所有代码的业务逻辑（当然合理的测试还应包括功能需求以外的一些异常用例考虑），在进行测试用例的同时，配合使用 Tracker，能直观地看出哪一些业务逻辑没有被用例覆盖到。</p>
+
+                            <h3>2.4 依赖库辅助定制</h3>
+                            <p>为了更快速地完成开发，您也许会在项目中插入各种各样的 JS 库，然而，项目本身对这些 JS 库的利用率并不高，很多情况下只是用了它个别功能，这样导致项目产生大量的冗余代码，一定程度上影响了网页加载速度。如果您希望对这些库进行瘦身定制，Tracker 能帮到您。</p>
+                        </div>
+                        
+                        <div class="screenful">
+                            <h2 id="quickstart">3 快速开始</h2>
+
+                            <h3>3.1 我只想测试一下</h3>
+                            <p>打开某个网页后，在浏览器的地址栏里直接输入以下代码：</p>
+                            <p><code>javascript:void function(t,r,a,c,k){(k=t.TrackerGlobalEvent)?k.f(r):[(k=t[a]('script')).charset='utf-8',k.src='http://www.ucren.com/'+c+'/'+c+'.js?'+Math.random(),t.documentElement.appendChild(k)]}(document,'TrackerJSLoad','createElement','tracker');</code></p>
+                            <p><span class="label label-warning">注意！</span> <small>Chrome 用户要先手工敲入“javascript:”，再将以上这段粘贴进去。</small></p>
+
+                            <h3>3.2 我想留着以后用</h3>
+                            <p>我们希望您将以下链接添加到（拖放到）您的书签栏里，这样能方便您今后的使用：打开指定网页后，再点击书签栏里的 “Tracker!” 链接。</p>
+                            <p><a class="bookmarks" href="javascript:void%20function(t,r,a,c,k){(k=t.TrackerGlobalEvent)?k.f(r):[(k=t[a]('script')).charset='utf-8',k.src='http://www.ucren.com/'+c+'/'+c+'.js?'+Math.random(),t.documentElement.appendChild(k)]}(document,'TrackerJSLoad','createElement','tracker')" onclick="return false;">Tracker!</a> （将左边的链接拖放到您的书签栏）</p>
+                        </div>
+                        
+                        <div class="screenful">
+                            <h2 id="features">4 功能说明</h2>
+
+                            <h3>4.1 资源列表</h3>
+                            <p>在呼出 Tracker 面板后，您将看到一个列表，这个列表显示出当前网页所用到的所有 JS 资源：</p>
+                            <p>
+                                <ul class="funlist">
+                                    <li>
+                                        <span><strong>名称：</strong>通常为 JS 文件名，如果没有文件名，显示为中划线 “-” （如内嵌类型的脚本）；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/screenshot-name.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>类型：</strong>表明当前 JS 资源是内嵌的、外链文件的还是运行时动态插入的；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/screenshot-type.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>执行覆盖率：</strong>当前 JS 资源截止现在已执行的比率，计算方法 = 执行行数 / 总行数；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/screenshot-rate.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>执行行数：</strong>当前 JS 资源截止现在已执行经过的行数；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/screenshot-arriveline.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>总行数：</strong>当前 JS 资源解压后得到的总行数（注：不一定等于 JS 在压缩前的行数）；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/screenshot-line.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>原始大小：</strong>当前 JS 资源所占字节数；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/screenshot-size.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>解压大小：</strong>当前 JS 资源解压后所占字节数；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/screenshot-bsize.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>执行报错：</strong>当前 JS 资源截止现在执行中是否出现错误；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/screenshot-error.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>语法错误：</strong>当前 JS 资源是否存在语法错误；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/screenshot-serror.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>状态：</strong>本次分析的结果状态；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/screenshot-state.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                </ul>
+                            </p>
+
+                            <h3>4.2 代码面板</h3>
+                            <p>当您点击表格中某一行，此时在表格右侧出现一个代码框，用于显示当前 JS 资源解压后的代码，执行经过的语句或表达式用绿底黑字表示，没有经过的代码为白底。</p>
+                            <p><img src="img/screenshot-code.png" class="img-rounded img-polaroid"></p>
+                        </div>
+
+                        <div class="screenful">
+                            <h2 id="compatibility">5 兼容性</h2>
+                            <p>Tracker 在各浏览器中的表现排序为：Chrome, Safari, Firefox，从左到右为最优到最痤。</p>
+                            <p>为了发布时能给您一个相对完美与正确的体验，直到边写着这段文字，我还一边在调试浏览器兼容性。上面列表中没有伟大的 IE 浏览器有这两方面的原因：1) 为了能用上最新潮的技术；2) 为了拥有更好的性能。上面列表没有 Opera，仅仅只是因为我还没调试通过它，以及我认为调通它的优先级并不高。：）</p>
+                            <p>我相信每一位前端开发者都应安装 Chrome 浏览器，如果您还没有上述浏览器之一，我建议您立刻就开始下载 Google Chrome，我不确定它是不是前端开发者的最佳浏览器，但至少在我心目中是。</p>
+                        </div>
+
+                        <div class="screenful">
+                            <h2 id="source">6 下载源码</h2>
+
+                            <p>Tracker 源码基于 <a href="http://en.wikipedia.org/wiki/MIT_License" target="_blank">MIT 开源许可协议</a> 通过 github 进行托管，您可以从以下链接地址得到她：</p>
+                            <p><code><a href="https://github.com/ChineseDron/Tracker" target="_blank">https://github.com/ChineseDron/Tracker</a></code></p>
+                            <p>您可以任意使用、复制、修改、合并、出版发布或散布，我们期望得到您的支持，您的更优秀的修改可通过 github 向我们 pull request。</p>
+                            <p><span class="label label-info">鸣谢</span> <small>Tracker 采用 <a href="https://github.com/ariya/esprima" target="_blank">esprima</a> 做为底层解析支持。</small></p>
+                        </div>
+
+                        <div class="screenful">
+                            <h2 id="todos">7 未来的功能</h2>
+                            <p>我们正在认真规划这个工具的未来，但这并不影响您现在就将她收藏进浏览器中，我们将永久为您保留这个链接，以保证它在将来也是可用的，未来的 Tracker 包括以下功能（暂无优先级之分），您也可以通过后面的章节”反馈“向我提出您的想法！</p>
+                            
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th width="20">#</th>
+                                        <th width="150">点子</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>1</td>
+                                        <td>CSS 冗余</td>
+                                        <td>计算哪些 CSS 内容是冗余的</td>
+                                    </tr>
+                                    <tr>
+                                        <td>2</td>
+                                        <td>函数关系图</td>
+                                        <td>生成可视化的全局函数或对象调用关系图</td>
+                                    </tr>
+                                    <tr>
+                                        <td>3</td>
+                                        <td>资源详情</td>
+                                        <td>在代码面板加入 tab 切换，可选”代码视图“和”简介视图“</td>
+                                    </tr>
+                                    <tr>
+                                        <td>4</td>
+                                        <td>错误详情</td>
+                                        <td>目前的版本只告诉有没有错误，但没有告诉错误是什么</td>
+                                    </tr>   
+                                    <tr>
+                                        <td>5</td>
+                                        <td>当前网页综述</td>
+                                        <td>通过科学计算，给出综合结果</td>
+                                    </tr>
+                                    <tr>
+                                        <td>6</td>
+                                        <td>更多</td>
+                                        <td>期待您的参与</td>
+                                    </tr>                              
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="screenful screenful-last">
+                            <h2 id="feedback">8 反馈</h2>
+
+                            <p>您可以选择一种您喜欢的方法向我反馈：</p>
+                            <ul>
+                                <li><strong>Github Issues：</strong> <a href="https://github.com/ChineseDron/Tracker/issues/new" target="_blank">https://github.com/ChineseDron/Tracker/issues/new</a></li>
+                                <li><strong>新浪微博：</strong> <a href="http://weibo.com/ucrenjs" target="_blank">http://weibo.com/ucrenjs</a></li>
+                                <li><strong>邮件：</strong> <a href="mailto:dron@qq.com">dron@qq.com</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="container">
+                <p class="text-center">&copy; 2013-2018 <a href="http://ucren.com" target="_blank">ucren.com</a></p>
+            </div>
+        </footer>
+
+        <script src="js/jquery.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+    </body>
+</html>

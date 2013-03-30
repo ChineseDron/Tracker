@@ -1,0 +1,148 @@
+html, body{
+    font-family: "Courier New", "Heiti SC", "Microsoft Yahei";
+}
+
+header{
+    width: auto;
+    background: black;
+}
+
+header .container{
+    color: white;
+    padding: 2.5em;
+}
+
+#main{
+    padding-top: 1.4em;
+}
+
+.sidebar{
+}
+
+.nav{
+    width: 14.75em;
+}
+
+.nav.affix{
+    top: 1.4em;
+}
+.nav.affix-bottom {
+    position: absolute;
+    top: auto;
+    bottom: 1.25em;
+}
+
+.nav li{
+    font-size: 1.2em;
+    line-height: 2.5em;
+    display: block;
+}
+
+.nav li a{
+    display: block;
+    padding-left: .6em;
+    border-radius: .4em;
+}
+
+.nav li a sup{
+    padding-left: 0.625em;
+    font-style: italic;
+    color: #808080;
+    font-size: 0.75em;
+}
+
+.nav li.active a{
+    color: white;
+    background-color: #08c;
+}
+
+.nav li a .icon-chevron-right {
+    float: right;
+    margin-top: 0.8em;
+    margin-right: 0.375em;
+    opacity: .25;
+}
+
+.nav li a:hover {
+    background-color: #f5f5f5;
+}
+
+.nav li a:hover .icon-chevron-right {
+    opacity: .5;
+}
+
+.nav li.active .icon-chevron-right,
+.nav li.active a:hover .icon-chevron-right {
+    background-image: url(../img/glyphicons-halflings-white.png);
+    opacity: 1;
+}
+
+#main .container p{
+    line-height: 1.6;
+    font-size: 1.3em;
+    color: #333;
+    margin: 0 0 1.3em;
+}
+
+#main .container p code{
+    font-size: 0.9em;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    word-spacing: normal;
+    color: #333;
+    display: block;
+}
+
+#main .container p .bookmarks{
+    color: #333;
+    background-color: #a6e591;
+    line-height: 1.875em;
+    padding: 0 1.25em;
+    border-radius: 0.3125em;
+    display: inline-block;
+    text-decoration: none;
+    font-size: 1.25em;
+}
+
+#main .container p.screenshot{
+    text-align: center;
+}
+
+#main .container ul.funlist{
+
+}
+
+#main .container ul.funlist li{
+    padding: 0 0 1.25em 0;
+}
+
+#main .container span.screenshot-fl{
+    /* 图片制作参数：描边 2px #2575bd，背景亮度 -10%，背景高斯模糊 1.5px，大小 350*100 */
+    display: block;
+    width: 21.875em;
+    height: 6.25em;
+    padding-top: 1.25em;
+}
+
+#main .container span.screenshot img{
+    width: 100%;
+    height: 100%;
+}
+
+#main .container .screenful{
+    /*min-height: 50em;*/
+}
+
+#main .container .screenful-last{
+    min-height: 30em;
+}
+
+footer{
+    background-color: whiteSmoke;
+    border-top: 1px solid #e5e5e5;
+    padding: 1.25em;
+}
+
+footer .container{
+    color: #777;
+}
