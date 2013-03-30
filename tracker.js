@@ -1276,7 +1276,7 @@ void function( window, factory ){
                                     "<a class='link' href='https://github.com/ChineseDron/Tracker/issues/new' target='_blank'>" + 
                                         "&#25105;&#35201;&#25253;&#38169;</a>",
                                     // 帮助
-                                    "<a class='link' href='https://ucren.com/tracker/docs/index.html' target='_blank'>" + 
+                                    "<a class='link' href='http://ucren.com/tracker/docs/index.html' target='_blank'>" + 
                                         "&#24110;&#21161;</a>",
                                     "<a class='button close' action='close'></a>",
                                     "<a class='button toggle' id='toggle-btn' " +
