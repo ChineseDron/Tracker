@@ -2014,7 +2014,7 @@ void function( window, factory ){
             }, function(){
                 var message, refresh;
 
-                message = "&#22788;&#29702;&#25805;&#26102;"; // 处理超时
+                message = "&#22788;&#29702;&#36229;&#26102;"; // 处理超时
                 refresh = function(){
                     location.assign( location.href );  
                 };
