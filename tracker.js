@@ -665,7 +665,12 @@ void function( window, factory ){
                     util.delay( this.onReady.fire.bind( this.onReady ) );
                 }.bind( this ) );
             }else{
-                // TODO: 当没有 content 时怎么办？
+                this.executiveCode = "void function (){}";
+                this.beautifySize = this.size = 0;
+                this.rowsCount = 0;
+                this.viewHtml = "";
+                this.setState( "empty" );
+                util.delay( this.onReady.fire.bind( this.onReady ) );
             }
         };
 
@@ -674,7 +679,7 @@ void function( window, factory ){
                 this.type = type; // embed, link, append
             },
 
-            setState: function( state ){ // normal, timeout
+            setState: function( state ){ // normal, timeout, empty
                 this.state = state;
             },
 
@@ -1127,6 +1132,8 @@ void function( window, factory ){
                             return "&#27491;&#24120;"; // 正常
                         case "timeout":
                             return "<span class='stress'>&#36229;&#26102;</span>"; // 超时
+                        case "empty":
+                            return "<span class='stress'>&#31354;&#26631;&#31614;</span>"; // 空标签
                     }
                 };
 
@@ -1269,7 +1276,7 @@ void function( window, factory ){
                                     "background-color: transparent; }",
 
                                 "#code{ overflow: scroll; }",
-                                "#code .timeout-code{ padding: 10px; font-size: 14px; }",
+                                "#code .timeout-code, #code .empty-code{ padding: 10px; font-size: 14px; }",
                                 ".block{ position: relative; background-color: #fff; }",
                                 ".block pre{ display: block; line-height: 20px; " + 
                                     "font-size: 13px; margin: 0; padding: 0; }",
@@ -1461,6 +1468,17 @@ void function( window, factory ){
                     }
                 };
 
+                var formatViewHtml = function( code ){
+                    if( code.state == "empty" ){
+                        return "<div class='empty-code stress'>" +
+                                "&#20869;&#23481;&#20026;&#31354;</div>"; // 内容为空
+                    }else if( code.state == "timeout" ){
+                        return "<div class='timeout-code stress'>" +
+                                "&#35299;&#26512;&#36229;&#26102;</div>"; // 解析超时
+                    }
+                    return code.viewHtml || "";
+                };
+
                 var makeCodeTr = function( code ){
                     var layer, html;
                     
@@ -1506,10 +1524,7 @@ void function( window, factory ){
 
                         if( id ){
                             code = CodeList.get( id );
-                            document.getElementById( "code" ).innerHTML = 
-                                code.viewHtml || 
-                                "<div class='timeout-code stress'>" +
-                                "&#35299;&#26512;&#36229;&#26102;</div>"; // 解析超时
+                            document.getElementById( "code" ).innerHTML = formatViewHtml( code );
 
                             // TODO: snippetsIdSet 改为数组的形式
                         
