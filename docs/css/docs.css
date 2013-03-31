@@ -93,15 +93,22 @@ header .container{
     display: block;
 }
 
-#main .container p .bookmarks{
-    color: #333;
-    background-color: #a6e591;
+#main .container p .striking{
     line-height: 1.875em;
     padding: 0 1.25em;
     border-radius: 0.3125em;
     display: inline-block;
     text-decoration: none;
     font-size: 1.25em;
+    color: #333;
+    background-color: #a6e591;
+}
+
+#main .container p .bookmarks{
+    
+}
+
+#main .container p .recommend{
 }
 
 #main .container p.screenshot{
