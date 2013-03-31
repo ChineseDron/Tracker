@@ -27,6 +27,7 @@
                             <li><a href="#features"><i class="icon-chevron-right"></i>功能说明</a></li>
                             <li><a href="#compatibility"><i class="icon-chevron-right"></i>兼容性</a></li>
                             <li><a href="#source">下载源码<i class="icon-chevron-right"></i></a></li>
+                            <li><a href="#changelog">版本历史<i class="icon-chevron-right"></i></a></li>
                             <li><a href="#todos"><i class="icon-chevron-right"></i>未来的功能</a></li>
                             <li><a href="#feedback">反馈<i class="icon-chevron-right"></i></a></li>
                         </ul>
@@ -60,12 +61,12 @@
 
                             <h3>3.1 我只想测试一下</h3>
                             <p>打开某个网页后，在浏览器的地址栏里直接输入以下代码：</p>
-                            <p><code>javascript:void function(t,r,a,c,k){(k=t.TrackerGlobalEvent)?k.f(r):[(k=t[a]('script')).charset='utf-8',k.src='http://www.ucren.com/'+c+'/'+c+'.js?'+Math.random(),t.documentElement.appendChild(k)]}(document,'TrackerJSLoad','createElement','tracker');</code></p>
+                            <p><code class="replace-uid">javascript:void function(t,r,a,c,k){t.tracker_uid='$uid';(k=t.TrackerGlobalEvent)?k.f(r):[(k=t[a]('script')).charset='utf-8',k.src='http://www.ucren.com/'+c+'/'+c+'.js?'+Math.random(),t.documentElement.appendChild(k)]}(document,'TrackerJSLoad','createElement','tracker');</code></p>
                             <p><span class="label label-warning">注意！</span> <small>Chrome 用户要先手工敲入“javascript:”，再将以上这段粘贴进去。</small></p>
 
                             <h3>3.2 我想留着以后用</h3>
                             <p>我们希望您将以下链接添加到（拖放到）您的书签栏里，这样能方便您今后的使用：打开指定网页后，再点击书签栏里的 “Tracker!” 链接。</p>
-                            <p><a class="striking bookmarks" href="javascript:void%20function(t,r,a,c,k){(k=t.TrackerGlobalEvent)?k.f(r):[(k=t[a]('script')).charset='utf-8',k.src='http://www.ucren.com/'+c+'/'+c+'.js?'+Math.random(),t.documentElement.appendChild(k)]}(document,'TrackerJSLoad','createElement','tracker')" onclick="return false;">Tracker!</a> （将左边的链接拖放到您的书签栏）</p>
+                            <p><a class="striking bookmarks replace-uid" href="javascript:void%20function(t,r,a,c,k){t.tracker_type='bm';t.tracker_uid='$uid';(k=t.TrackerGlobalEvent)?k.f(r):[(k=t[a]('script')).charset='utf-8',k.src='http://www.ucren.com/'+c+'/'+c+'.js?'+Math.random(),t.documentElement.appendChild(k)]}(document,'TrackerJSLoad','createElement','tracker')" onclick="return false;">Tracker!</a> （将左边的链接拖放到您的书签栏）</p>
                         </div>
                         
                         <div class="screenful">
@@ -160,7 +161,40 @@
                         </div>
 
                         <div class="screenful">
-                            <h2 id="todos">7 未来的功能</h2>
+                            <h2 id="changelog">7 版本历史</h2>
+
+                            <div class="btn-group">
+                                <button class="btn expand-changelog">+ 展开</button>
+                            </div>
+
+                            <div id="changelog-content">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th width="80">版本</th>
+                                            <th>说明</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1.2</td>
+                                            <td>新增”推荐给好友“，修改反馈机制</td>
+                                        </tr>
+                                        <tr>
+                                            <td>1.1</td>
+                                            <td>重构，基于语法树加钩子，确保插入代码的正确性</td>
+                                        </tr>
+                                        <tr>
+                                            <td>1.0</td>
+                                            <td>初版</td>
+                                        </tr>                             
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="screenful">
+                            <h2 id="todos">8 未来的功能</h2>
                             <p>我们正在认真规划这个工具的未来，但这并不影响您现在就将她收藏进浏览器中，我们将永久为您保留这个链接，以保证它在将来也是可用的，未来的 Tracker 包括以下功能（暂无优先级之分），您也可以通过后面的章节”反馈“向我提出您的想法！</p>
                             
                             <table class="table table-bordered table-hover">
@@ -207,7 +241,7 @@
                         </div>
                         
                         <div class="screenful screenful-last">
-                            <h2 id="feedback">8 反馈</h2>
+                            <h2 id="feedback">9 反馈</h2>
 
                             <p>您可以选择一种您喜欢的方法向我反馈：</p>
                             <p>
@@ -234,5 +268,6 @@
 
         <script src="js/jquery.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
+        <script src="js/docs.js"></script>
     </body>
 </html>

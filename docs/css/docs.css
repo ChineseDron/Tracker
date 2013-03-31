@@ -144,6 +144,22 @@ header .container{
     min-height: 30em;
 }
 
+#changelog-content{
+    overflow: hidden;
+    width: auto;
+    height: 0;
+    opacity: 0;
+    -webkit-transition: opacity .5s ease;
+    -moz-transition: opacity .5s ease;
+    -o-transition: opacity .5s ease;
+}
+
+#changelog-content.show{
+    opacity: 1;
+    height: auto;
+    padding: 1em 0;
+}
+
 footer{
     background-color: whiteSmoke;
     border-top: 1px solid #e5e5e5;

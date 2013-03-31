@@ -1,6 +1,6 @@
 /** 
  * Tracker.js
- * @version 1.1
+ * @version 1.2
  * @author dron
  * @create 2012-12-22
  */
@@ -22,7 +22,7 @@ void function( window, factory ){
     host.TrackerGlobalEvent.fire( "TrackerJSLoad" );
 
 }( this, function( window ){
-    var global, host, location, slice, floor, max, push, debugMode, version;
+    var global, host, location, slice, floor, max, push, version;
 
     global = window;
     host = global.document;
@@ -31,8 +31,7 @@ void function( window, factory ){
     push = [].push;
     floor = Math.floor;
     max = Math.max;
-    debugMode = /#?tracker\-debug=on/.test( location.href );
-    version = "1.1";
+    version = "1.2";
 
     var getShareLink = function(){
         var url = "http://service.weibo.com/share/share.php";
@@ -277,6 +276,28 @@ void function( window, factory ){
             time: function(){
                 return new Date().getTime();
             },
+
+            browser: function(){
+                var ua, isOpera, ret;
+                
+                ua = navigator.userAgent;
+                isOpera = Object.prototype.toString.call(window.opera) == '[object Opera]';
+                ret = {
+                    IE:     !!window.attachEvent && !isOpera,
+                    Opera:  isOpera,
+                    WebKit: ua.indexOf('AppleWebKit/') > -1,
+                    Gecko:  ua.indexOf('Gecko') > -1 && ua.indexOf('KHTML') === -1
+                    // MobileSafari:   /Apple.*Mobile/.test(ua)
+                };
+
+                for( var name in ret )
+                    if( ret.hasOwnProperty( name ) && ret[ name ] ){
+                        ret.name = name;
+                        break;
+                    }
+
+                return ret;
+            }(),
 
             isntCrossDomain: function(){
                 var locationOriginRegx, hasProtocol;
@@ -619,7 +640,6 @@ void function( window, factory ){
             this.beautifySize = -1;
             this.runErrors = [];
             this.syntaxErrors = [];
-            this.injectErrors = [];
             this.snippetsIdSet = {}; // 已切分成代码碎片的 id 集合
 
             this.executiveCode = "";
@@ -1661,21 +1681,24 @@ void function( window, factory ){
     }();
 
     var Feedback = function(){
-        var urlBase, messageBase, url, runErrors, syntaxErrors, injectErrors,
-            timer, getUrl, me;
+        var urlBase, messageBase, url, runErrors, syntaxErrors, timer, timeout, getUrl, me, tt, uid;
 
         urlBase = "http://www.ucren.com/feedback/trace.php?content=";
         messageBase = "Tracker: ";
         url = location.href;
         runErrors = 0;
         syntaxErrors = 0;
-        injectErrors = 0;
+        tt = host.tracker_type == "bm" ? "bookmarks" : "temp";
+        uid = host.tracker_uid || "guest";
+        timeout = 5e3;
 
         getUrl = function(){
             var errors, message;
             
-            errors = [ runErrors, syntaxErrors, injectErrors ];
-            message = encodeURIComponent( [ messageBase, navigator.userAgent, 
+            errors = [ runErrors, syntaxErrors ];
+            message = encodeURIComponent( [ 
+                messageBase, util.browser.name, 
+                "[", tt, uid, "]",
                 "[", errors.join( " " ), "]", url ].join( " " ) );
 
             return urlBase + message;
@@ -1691,23 +1714,20 @@ void function( window, factory ){
                         case "syntaxErrors":
                             syntaxErrors ++;
                             break;
-                        case "injectErrors":
-                            injectErrors ++;
-                            break;
                     }
 
                     clearTimeout( timer );
-                    timer = setTimeout( me.send, 5e3 );
+                    timer = setTimeout( me.send, timeout );
                 } );
 
                 clearTimeout( timer );
-                timer = setTimeout( this.send, 5e3 );  
+                timer = setTimeout( this.send, timeout );
             },
 
             send: function(){
                 clearTimeout( timer );
                 new Image().src = getUrl();
-                runErrors = syntaxErrors = injectErrors = 0;
+                runErrors = syntaxErrors = 0;
             }
         }
     }();
@@ -1894,7 +1914,6 @@ void function( window, factory ){
         };
     };
 
-    if( debugMode )
         var Tracker = function(){
             var cmd = function( cmd ){
                 var n = arguments[1];
@@ -1902,12 +1921,6 @@ void function( window, factory ){
                     case "code":
                         return typeof n != "undefined" ?
                             CodeList.get( n ) : CodeList.list();
-                    case "inject-error":
-                        util.forEach( CodeList.list(), function( code ){
-                            if( code.injectErrors.length )
-                                console.log( code );
-                        } );
-                        break;
                     default:
                         return "no such command";
                 }
@@ -1917,7 +1930,7 @@ void function( window, factory ){
                 return "undefined";
             };
 
-            return { cmd: cmd }
+        return { cmd: cmd };
         }();
 
     // business logic
@@ -2046,7 +2059,6 @@ void function( window, factory ){
             base.setAttribute( "target", "tracker_main" );
             head.appendChild( base );
 
-            if( !debugMode )
                 Event.add( window, "unload", function(){
                     location.assign( location.href );
                 } );
