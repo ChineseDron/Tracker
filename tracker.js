@@ -1133,7 +1133,7 @@ void function( window, factory ){
                         case "timeout":
                             return "<span class='stress'>&#36229;&#26102;</span>"; // 超时
                         case "empty":
-                            return "<span class='stress'>&#31354;&#26631;&#31614;</span>"; // 空标签
+                            return "<span class='stress'>&#26080;&#20869;&#23481;</span>"; // 无内容
                     }
                 };
 

@@ -136,10 +136,6 @@ header .container{
     height: 100%;
 }
 
-#main .container .screenful{
-    /*min-height: 50em;*/
-}
-
 #main .container .screenful-last{
     min-height: 30em;
 }
