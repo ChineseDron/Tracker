@@ -1,6 +1,6 @@
 /** 
  * Tracker.js
- * @version 1.3
+ * @version 1.4
  * @author dron
  * @create 2012-12-22
  */
@@ -31,7 +31,7 @@ void function( window, factory ){
     push = [].push;
     floor = Math.floor;
     max = Math.max;
-    version = "1.3";
+    version = "1.4";
 
     var getShareLink = function(){
         var url = "http://service.weibo.com/share/share.php";
@@ -68,7 +68,7 @@ void function( window, factory ){
             esc = function(){
                 var regx, rep;
                 
-                regx = /[\\\/ \+%&=#]/g;
+                regx = /[\\\/ \+%&=#\?]/g;
                 rep = function( s ){
                     return escape( s );
                 };
@@ -234,21 +234,6 @@ void function( window, factory ){
                     .replace( /'/g, "&#39;" );
             },
 
-            removeHtmlComment: function(){
-                var htmlCommentRegx1, htmlCommentRegx2, cDataRegx1, cDataRegx2;
-
-                htmlCommentRegx1 = /(\n|^)\s*<!--.*?-->\s*/g;
-                htmlCommentRegx2 = /(\n|^)\s*<!--\s*\n|\n?\s*-->\s*\n/g;
-                cDataRegx1 = /(\n|^)\s*<!\[CDATA\[/g;
-                cDataRegx2 = /\/\/\]\]>\s*/g;
-
-                return function( string ){
-                    return string.replace( htmlCommentRegx1, "" ).replace(
-                        htmlCommentRegx2, "" ).replace( cDataRegx1, "" ).replace(
-                        cDataRegx2, "");
-                }
-            }(),
-
             splitToLines: function(){
                 var splitLineRegx = /\r\n|[\r\n]/;
                 return function( string ){
@@ -273,7 +258,7 @@ void function( window, factory ){
                 start = url.lastIndexOf( "/" );
                 end = max( url.indexOf( "#" ), url.indexOf( "?" ) );
 
-                if( end == -1 )
+                if( end == -1 || end == start + 1 )
                     end = url.length;
 
                 return url.slice( start + 1, end );
@@ -617,7 +602,8 @@ void function( window, factory ){
                         return cache[ index - 0 ];
                     } );
                     pm.resolve( content );
-                } )
+                } );
+
                 return pm;
             }
         };
@@ -628,9 +614,6 @@ void function( window, factory ){
 
         klass = function( url, content ){
             var comboCode, beautifyCode;
-
-            if( content )
-                content = util.removeHtmlComment( content );
 
             Feedback.lookup( this );
             this.id = util.id();
@@ -866,10 +849,10 @@ void function( window, factory ){
                 var create = function(){
                     var span;
 
-                    layer = util.makeElement( "div", "position: absolute; width: 350px; " +
-                    "height: 90px; border-radius: 10px; background: rgba(0,0,0,.75); " + 
-                    "font-size: 20px; line-height: 90px; text-align: center; " +
-                    "color: #fff; top: 200px; left: 50%; margin: 0 0 0 -140px; " +
+                    layer = util.makeElement( "div", "position: absolute; padding: 30px; " +
+                    "border-radius: 10px; background: rgba(0,0,0,.75); " + 
+                    "font-size: 20px; line-height: 20px; text-align: center; " +
+                    "color: #fff; bottom: 50px; left: 50px; box-shadow: 0 2px 5px #000; " +
                     "z-index: 65535; font-family: \"Courier New\", \"Heiti SC\", \"Microsoft Yahei\";" );
                     layer.innerHTML = "Analysising <span>...</span> <span>(0/0)</span>";
                     body.appendChild( layer );
@@ -931,12 +914,12 @@ void function( window, factory ){
 
                     addCount: function(){
                         count ++;
-                        span2.innerHTML = "(" + progress + "/" + count + ")";
+                        span2.innerHTML = "(" + ( progress / count * 100 ).toFixed( 2 ) + "%)";
                     },
 
                     addProgress: function(){
                         progress ++;
-                        span2.innerHTML = "(" + progress + "/" + count + ")";
+                        span2.innerHTML = "(" + ( progress / count * 100 ).toFixed( 2 ) + "%)";
                     }
                 }
             }(),
@@ -1701,7 +1684,8 @@ void function( window, factory ){
     }();
 
     var Feedback = function(){
-        var urlBase, messageBase, url, runErrors, syntaxErrors, timer, timeout, getUrl, me, tt, uid;
+        var urlBase, messageBase, url, runErrors, syntaxErrors, timer, timeout, getUrl, me, tt, uid,
+            controllerState, autoStartTimer, autoStartTimeout, started;
 
         urlBase = "http://www.ucren.com/feedback/trace.php?content=";
         messageBase = "Tracker: ";
@@ -1710,22 +1694,29 @@ void function( window, factory ){
         syntaxErrors = 0;
         tt = host.tracker_type == "bm" ? "bookmarks" : "temp";
         uid = host.tracker_uid || "guest";
-        timeout = 5e3;
+        timeout = 2e3;
+        autoStartTimeout = 1e4;
+        controllerState = "preshow";
 
         getUrl = function(){
             var errors, message;
             
             errors = [ runErrors, syntaxErrors ];
             message = encodeURIComponent( [ 
-                messageBase, util.browser.name, 
-                "[", tt, uid, "]",
-                "[", errors.join( " " ), "]", url ].join( " " ) );
+                messageBase, 
+                "[ BROWSER ]", util.browser.name, 
+                "[ USER ]", tt, uid,
+                "[ ERRORS ]", errors.join( " " ),
+                "[ CONTROLLER ]", controllerState,
+                "[ TARGET ]", url ].join( " " ) );
 
             return urlBase + message;
         };
 
         return me = {
             lookup: function( code ){
+                var me = this;
+
                 code.on( "error", function( type ){
                     switch( type ){
                         case "runErrors":
@@ -1735,13 +1726,24 @@ void function( window, factory ){
                             syntaxErrors ++;
                             break;
                     }
-
-                    clearTimeout( timer );
-                    timer = setTimeout( me.send, timeout );
                 } );
 
+                if( !started ){
+                    clearTimeout( autoStartTimer );
+                    autoStartTimer = setTimeout( function(){
+                        me.start();
+                    }, autoStartTimeout );  
+                }
+            },
+
+            setControllerState: function( state ){
+                controllerState = state;
+            },
+
+            start: function(){
                 clearTimeout( timer );
                 timer = setTimeout( this.send, timeout );
+                started = true;
             },
 
             send: function(){
@@ -1987,6 +1989,7 @@ void function( window, factory ){
                         pm = new promise;
 
                         if( srcPropertyRegx.test( openTag ) ){
+                            view.Loading.addCount();
                             pm.resolve( raw );
                             return pm;
                         }
@@ -2016,12 +2019,14 @@ void function( window, factory ){
                             var pm;
                             
                             pm = new promise;
-                            url = util.param( url, "tracker-hook", util.id() );
-                            url = util.param( url, "tracker-random", util.random() );
-                            view.Loading.addCount();
+                            // url = util.param( url, "tracker-hook", util.id() );
+                            // url = util.param( url, "tracker-random", util.random() );
+                            // view.Loading.addCount();
 
                             util.intelligentGet( url ).then( function( content ){
                                 var code;
+
+                                // TODO: 对于很多没有文件名的，需要优化一下界面显示方案
 
                                 code = new Code( url, content );
                                 code.setType( "link" );
@@ -2091,10 +2096,15 @@ void function( window, factory ){
             view.ControlPanel.addCode( codes = CodeList.list() );
             view.ControlPanel.eventBuilder();
 
+            Feedback.start();
+
             if( currentCodeId )
                 view.ControlPanel.showCode( currentCodeId );
 
             controllerOnLoad.fire();
+
+            Feedback.setControllerState( "showed" );
+
             updateInterval = setInterval( checkCodes, 3e3 );
 
             var waitTime = document.getElementById( "waitTime" );
@@ -6176,9 +6186,75 @@ void function( window, factory ){
         };
         factory( escodegen = {}, global );
 
+        var trialHtmlCommentError = function( content ){
+            var errorRegx, cutFlag1, cutFlag2, lineSpliter;
+
+            errorRegx = /^Line (\d+): Unexpected token (<|>)$/;
+            cutFlag1 = "<!--";
+            cutFlag2 = "-->";
+            lineSpliter = /\r\n|[\r\n]/;
+
+            var test = function( content ){
+                var ast;
+
+                try{
+                    ast = host.esprima.parse( content, parseConf );
+                    return { status: "OK", ast: ast };
+                }catch( e ){
+                    // console.log( "【Tracker】 " + e.message );
+                    if( errorRegx.test( e.message ) ){
+                        
+                        return {
+                            status: "MaybeHtmlCommentError",
+                            errorMode: RegExp.$2,
+                            line: RegExp.$1 - 0,
+                            error: e
+                        }
+                    }
+
+                    return {
+                        status: "OtherError",
+                        error: e
+                    }; 
+                }
+            };
+
+            return function( content ){
+                var ret, status, c, b, l;
+
+                c = content;
+
+                while( true ){
+                    ret = test( c );
+                    status = ret.status;
+
+                    if( status == "OK" ){
+                        return ret.ast;
+                    }else if( status == "OtherError" ){
+                        throw ret.error;
+                    }else if( status == "MaybeHtmlCommentError" ){
+                        c = c.split( lineSpliter );
+                        l = ret.line - 1;
+                        b = c[ l ];
+                        if( ret.errorMode == "<" && b.indexOf( cutFlag1 ) > -1 ){
+                            c[ l ] = b.slice( 0, b.lastIndexOf( cutFlag1 ) );
+                        }else if( ret.errorMode == ">" && b.indexOf( cutFlag2 ) > -1 ){
+                            c[ l ] = b.slice( 0, b.lastIndexOf( cutFlag2 ) );
+                        }else{
+                            throw ret.error;  
+                        }
+                        c = c.join( "\n" );
+                    }
+                }
+            };
+        }();
+
         host.combocodegen = function( code ){
-            return escodegen.generate( 
-                host.esprima.parse( code.origContent, parseConf ), generateConf, code );
+            var ast;
+
+            ast = trialHtmlCommentError( code.origContent );
+
+            return escodegen.generate( ast, generateConf, code );
         };
     }(function ( exports, global ) {
         'use strict';
