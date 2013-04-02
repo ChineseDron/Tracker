@@ -45,9 +45,9 @@ header .container{
 }
 
 .nav li a sup{
-    padding-left: 0.625em;
+    padding-left: 0.375em;
     font-style: italic;
-    color: #808080;
+    color: #0c0;
     font-size: 0.75em;
 }
 

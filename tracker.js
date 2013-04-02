@@ -1,6 +1,6 @@
 /** 
  * Tracker.js
- * @version 1.2
+ * @version 1.3
  * @author dron
  * @create 2012-12-22
  */
@@ -31,7 +31,7 @@ void function( window, factory ){
     push = [].push;
     floor = Math.floor;
     max = Math.max;
-    version = "1.2";
+    version = "1.3";
 
     var getShareLink = function(){
         var url = "http://service.weibo.com/share/share.php";
@@ -117,6 +117,12 @@ void function( window, factory ){
 
         return {
             blank: function(){  
+            },
+
+            bind: function( fn, scope ){
+                return function(){
+                    return fn.apply( scope, arguments );
+                };
             },
 
             forEach: function( unknow, iterator ){
@@ -649,7 +655,7 @@ void function( window, factory ){
 
             if( content ){
                 comboCode = new ComboCode( this );
-                comboCode.onReady( function(){
+                comboCode.onReady( util.bind( function(){
                     if( comboCode.errorMessage ){
                         this.executiveCode = this.origContent;
                         this.syntaxErrors.push( comboCode );
@@ -662,15 +668,15 @@ void function( window, factory ){
                     }
 
                     this.viewHtml = comboCode.getViewHtml();
-                    util.delay( this.onReady.fire.bind( this.onReady ) );
-                }.bind( this ) );
+                    util.delay( util.bind( this.onReady.fire, this.onReady ) );
+                }, this ) );
             }else{
                 this.executiveCode = "void function (){}";
                 this.beautifySize = this.size = 0;
                 this.rowsCount = 0;
                 this.viewHtml = "";
                 this.setState( "empty" );
-                util.delay( this.onReady.fire.bind( this.onReady ) );
+                util.delay( util.bind( this.onReady.fire, this.onReady ) );
             }
         };
 
@@ -711,15 +717,15 @@ void function( window, factory ){
             this.errorMessage = null;
 
             this.onReady = promise.fuze();
-            util.delay( function(){
+            util.delay( util.bind( function(){
                 try{
                     this.code = host.combocodegen( CodeInstance );
                 }catch(e){
                     this.errorMessage = e.message;
                 }
 
-                util.delay( this.onReady.fire.bind( this.onReady ) );
-            }.bind( this ) );
+                util.delay( util.bind( this.onReady.fire, this.onReady ) );
+            }, this ) );
         };
 
         klass.prototype = Event.bind( {
@@ -1041,7 +1047,7 @@ void function( window, factory ){
                         promise.when( 
                             hasCreateEmbeded ? [ controllerBuilder( "embed" ) ] : 
                             [ pageBuilder(), controllerBuilder( "embed" ) ] 
-                        ).then( function( pageHtml, controllerHtml ){
+                        ).then( util.bind( function( pageHtml, controllerHtml ){
                             if( !controllerHtml )
                                 controllerHtml = pageHtml,
                                 pageHtml = null;
@@ -1061,7 +1067,7 @@ void function( window, factory ){
                             controller = this.getWindow( "tracker_controller" );
                             this.fire( "controllerLoad", controller, 
                                 controller.document );
-                        }.bind( this ) );
+                        }, this ) );
 
                         hasCreateEmbeded = true;
                     },
@@ -1075,12 +1081,12 @@ void function( window, factory ){
                             ", toolbar=no, menubar=no, resizable=yes, status=no, " +
                             "location=no, scrollbars=yes" );
 
-                        controllerBuilder( "window" ).then( function( html ){
+                        controllerBuilder( "window" ).then( util.bind( function( html ){
                             this.write( "tracker_controller", html );
                             controller = this.getWindow( "tracker_controller" );
                             this.fire( "controllerLoad", controller, 
                                 controller.document );
-                        }.bind( this ) );
+                        }, this ) );
                     },
 
                     removeControllerFrame: function(){
@@ -1094,7 +1100,6 @@ void function( window, factory ){
 
                     write: function( name, content ){
                         var document;
-
                         document = this.getWindow( name ).document;
                         document.open( "text/html", "replace" );
                         document.write( content );
@@ -2106,12 +2111,12 @@ void function( window, factory ){
         } );
 
         view.ControlPanel.actions( {
-            close: view.ControlFrame.hide.bind( view.ControlFrame ),
-            toggleMode: view.ControlFrame.toggleMode.bind( view.ControlFrame )
+            close: util.bind( view.ControlFrame.hide, view.ControlFrame ),
+            toggleMode: util.bind( view.ControlFrame.toggleMode, view.ControlFrame )
         } );
 
         host.TrackerGlobalEvent.on( "TrackerJSLoad", function(){
-            controllerOnLoad( view.ControlFrame.show.bind( view.ControlFrame ) );
+            controllerOnLoad( util.bind( view.ControlFrame.show, view.ControlFrame ) );
         } );
 
         restorePageEnvironments();
