@@ -2,6 +2,10 @@ html, body{
     font-family: "Courier New", "Heiti SC", "Microsoft Yahei";
 }
 
+body .popover{
+    max-width: 28em;
+}
+
 header{
     width: auto;
     background: black;
@@ -96,16 +100,16 @@ header .container{
 #main .container p .striking{
     line-height: 1.875em;
     padding: 0 1.25em;
-    border-radius: 0.3125em;
+    border-radius: 0.2em;
     display: inline-block;
     text-decoration: none;
-    font-size: 1.25em;
-    color: #333;
-    background-color: #a6e591;
+    font-size: 1em;
+    color: #fff;
+    background-color: #08C;
 }
 
 #main .container p .bookmarks{
-    
+    cursor: move;
 }
 
 #main .container p .recommend{

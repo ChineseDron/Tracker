@@ -1,6 +1,6 @@
 /** 
  * Tracker.js
- * @version 1.4
+ * @version 1.6
  * @author dron
  * @create 2012-12-22
  */
@@ -31,7 +31,7 @@ void function( window, factory ){
     push = [].push;
     floor = Math.floor;
     max = Math.max;
-    version = "1.4";
+    version = "1.6";
 
     var getShareLink = function(){
         var url = "http://service.weibo.com/share/share.php";
@@ -142,6 +142,26 @@ void function( window, factory ){
                     return "_" + id ++;
                 }
             }( 0 ),
+
+            handle: function(){
+                var cache, number;
+
+                cache = [];
+                number = -1;
+
+                return function( unknown ){
+                    var type;
+
+                    type = typeof unknown;
+
+                    if( type == "number" )
+                        return cache[ unknown ];
+                    else if( type == "object" || type == "function" ){
+                        cache[ ++ number ] = unknown;
+                        return number;
+                    }
+                } 
+            }(),
 
             trim: function(){
                 var regx = /^\s+|\s+$/g, rep = "";
@@ -632,7 +652,7 @@ void function( window, factory ){
             this.snippetsIdSet = {}; // 已切分成代码碎片的 id 集合
 
             this.executiveCode = "";
-            this.viewHtml = "";
+            this.linesViewHtml = [];
 
             this.onReady = promise.fuze();
 
@@ -650,16 +670,18 @@ void function( window, factory ){
                         this.rowsCount = util.splitToLines( beautifyCode ).length;
                     }
 
-                    this.viewHtml = comboCode.getViewHtml();
-                    util.delay( util.bind( this.onReady.fire, this.onReady ) );
+                    this.linesViewHtml = comboCode.getViewHtmlByLines();
+                    this.onReady.fire();
+                    // util.delay( util.bind( this.onReady.fire, this.onReady ) );
                 }, this ) );
             }else{
                 this.executiveCode = "void function (){}";
                 this.beautifySize = this.size = 0;
                 this.rowsCount = 0;
-                this.viewHtml = "";
+                this.linesViewHtml = [];
                 this.setState( "empty" );
-                util.delay( util.bind( this.onReady.fire, this.onReady ) );
+                this.onReady.fire();
+                // util.delay( util.bind( this.onReady.fire, this.onReady ) );
             }
         };
 
@@ -688,7 +710,7 @@ void function( window, factory ){
 
         closeTagRegx = /<\/(\w{0,10})>/g;
 
-        viewHtmlRegx = /\{<\}(<\!\-\- TRACKERINJECTHTML \-\->.*?)\{>\}/g;
+        viewHtmlRegx = /\{<\}(<!-- TRACKERINJECTHTML -->.*?)\{>\}/g;
         executiveCodeRegx = /\{<\}\/\* TRACKERINJECTJS \*\/.*?\{>\}/g;
         comboCodeBoundaryRegx = /\{(?:<|>)\}/g;
         lineFirstIdRegx = /id=ckey\-(\d+)/;
@@ -700,15 +722,16 @@ void function( window, factory ){
             this.errorMessage = null;
 
             this.onReady = promise.fuze();
-            util.delay( util.bind( function(){
-                try{
-                    this.code = host.combocodegen( CodeInstance );
-                }catch(e){
-                    this.errorMessage = e.message;
-                }
+            // util.delay( util.bind( function(){
+            try{
+                this.code = host.combocodegen( CodeInstance );
+            }catch(e){
+                this.errorMessage = e.message;
+            }
 
-                util.delay( util.bind( this.onReady.fire, this.onReady ) );
-            }, this ) );
+            this.onReady.fire();
+                // util.delay( util.bind( this.onReady.fire, this.onReady ) );
+            // }, this ) );
         };
 
         klass.prototype = Event.bind( {
@@ -743,11 +766,9 @@ void function( window, factory ){
                 return code;
             },
 
-            getViewHtml: function(){
-                var code, h1, h2, lines;
-                
-                h1 = [];
-                h2 = [];
+            getViewHtmlByLines: function(){
+                var code, lines;
+
                 code = this.code || this.CodeInstance.origContent;
 
                 code = code.replace( viewHtmlRegx, function( s, a ){
@@ -756,8 +777,6 @@ void function( window, factory ){
 
                 code = code.replace( executiveCodeRegx, "" );
                 code = code.replace( comboCodeBoundaryRegx, "" );
-                // return code;
-                
                 lines = util.splitToLines( code );
 
                 util.forEach( lines, function( line, index ){
@@ -767,22 +786,9 @@ void function( window, factory ){
 
                     if( firstId )
                         StatusPool.beginOfLineSnippetPut( firstId[1] );
-
-                    h1.push( util.tag( index + 1, "pre" ) );
-                    line = util.html( line );
-                    h2.push( util.tag( line || " ", "pre" ) );
                 } );
 
-                h1 = util.tag( h1.join( "" ), "div", "gutter" );
-                h2 = util.tag( h2.join( "" ), "div", "lines" );
-
-                h1 = util.tag( h1 + h2, "div", "block clearfix" );
-                h1 = h1.replace( "<div", "<div style='height: " + ( lines.length * 20 + 10 ) + 
-                    "px;'" );
-
-                h1 = h1.replace( /\x00/g, "<" ).replace( /\x01/g, ">" );
-
-                return h1;
+                return lines;
             }
         } );
 
@@ -849,7 +855,7 @@ void function( window, factory ){
                 var create = function(){
                     var span;
 
-                    layer = util.makeElement( "div", "position: absolute; padding: 30px; " +
+                    layer = util.makeElement( "div", "position: fixed; padding: 30px; " +
                     "border-radius: 10px; background: rgba(0,0,0,.75); " + 
                     "font-size: 20px; line-height: 20px; text-align: center; " +
                     "color: #fff; bottom: 50px; left: 50px; box-shadow: 0 2px 5px #000; " +
@@ -1456,17 +1462,6 @@ void function( window, factory ){
                     }
                 };
 
-                var formatViewHtml = function( code ){
-                    if( code.state == "empty" ){
-                        return "<div class='empty-code stress'>" +
-                                "&#20869;&#23481;&#20026;&#31354;</div>"; // 内容为空
-                    }else if( code.state == "timeout" ){
-                        return "<div class='timeout-code stress'>" +
-                                "&#35299;&#26512;&#36229;&#26102;</div>"; // 解析超时
-                    }
-                    return code.viewHtml || "";
-                };
-
                 var makeCodeTr = function( code ){
                     var layer, html;
                     
@@ -1477,10 +1472,104 @@ void function( window, factory ){
                     return layer.getElementsByTagName( "tr" )[ 0 ];
                 };
 
+                var asnyShowCode = function(){
+                    var timer, timeout, interval, prepare, partCount, nowIndex, init,
+                        currentDisposeLines, gutterEl, linesEl, regx1, regx2, ckeyIdRegx, result, 
+                        linesCount, h1, h2;
+
+                    timeout = 1;
+                    partCount = 100;
+                    regx1 = /\x00/g;
+                    regx2 = /\x01/g;
+                    ckeyIdRegx = /id=ckey-(\d+)/g;
+                    h1 = [];
+                    h2 = [];
+
+                    init = function(){
+                        nowIndex = 0;
+                        linesCount = 0;
+                        window.clearInterval( timer );
+                    };
+
+                    prepare = function(){
+                        var innerElId = util.id();
+                        var gutterId = util.id();
+                        var linesId = util.id();
+
+                        codeEl.innerHTML = "<div id='" + innerElId + "' class='block clearfix' " +
+                            "style='height: " + ( linesCount * 20 + 10 ) + "px;'>" +
+                            "<div id='" + gutterId + "' class='gutter'></div>" +
+                            "<div id='" + linesId + "' class='lines'></div></div>";
+                        codeEl.scrollTop = 0;
+
+                        gutterEl = document.getElementById( gutterId );
+                        linesEl = document.getElementById( linesId );
+                    };
+
+                    interval = function(){
+                        var t, p1, p2;
+
+                        h1.length = h2.length = 0;
+
+                        for( var i = 0; i < partCount; i ++ ){
+                            if( nowIndex >= linesCount ){
+                                init();
+                                break;
+                            }
+
+                            t = util.html( currentDisposeLines[ nowIndex ] ).replace( regx1, "<" )
+                                .replace( regx2, ">" );
+
+                            t = t.replace( ckeyIdRegx, function( all, id ){
+                                return StatusPool.arrivedSnippetGet( id ) ? 
+                                    all + " class='arrive'" : all;
+                            } );
+
+                            h1.push( util.tag( nowIndex + 1, "pre" ) );
+                            h2.push( util.tag( t || " ", "pre" ) );
+
+                            nowIndex ++;
+                        }
+
+                        p1 = document.createElement( "div" );
+                        p2 = document.createElement( "div" );
+
+                        p1.innerHTML = h1.join( "" );
+                        p2.innerHTML = h2.join( "" );
+
+                        gutterEl.appendChild( p1 );
+                        linesEl.appendChild( p2 );
+                    };
+
+                    result = function( code ){
+                        init();
+
+                        if( code.state == "empty" ){
+                            codeEl.innerHTML = "<div class='empty-code stress'>" +
+                                    "&#20869;&#23481;&#20026;&#31354;</div>"; // 内容为空
+                        }else if( code.state == "timeout" ){
+                            codeEl.innerHTML = "<div class='timeout-code stress'>" +
+                                    "&#35299;&#26512;&#36229;&#26102;</div>"; // 解析超时
+                        }else{
+                            currentDisposeLines = code.linesViewHtml;
+                            linesCount = currentDisposeLines.length;
+                            prepare();
+                            timer = window.setInterval( interval, timeout );
+                        }
+                    };
+
+                    result.clear = init;
+
+                    return result;
+                }();
+
+                var codeEl;
+
                 return Event.bind( {
                     bindWindow: function( win ){
                         window = win;
                         document = window.document;
+                        codeEl = document.getElementById( "code" );
                     },
 
                     addCode: function( code ){
@@ -1493,17 +1582,19 @@ void function( window, factory ){
                         if( code instanceof Array ){
                             resourceList.innerHTML = codeListTemplate( code );
                         }else if( code instanceof Code ){
-                            code.index = index;
-                            tbody = resourceList.getElementsByTagName( "table" )[ 0 ]
-                                .getElementsByTagName( "tbody" )[ 0 ];
-                            tr = makeCodeTr( code );
-                            tr.className = index % 2 ? "double" : "";
-                            tbody.appendChild( tr );
+                            code.onReady( function(){
+                                code.index = index;
+                                tbody = resourceList.getElementsByTagName( "table" )[ 0 ]
+                                    .getElementsByTagName( "tbody" )[ 0 ];
+                                tr = makeCodeTr( code );
+                                tr.className = index % 2 ? "double" : "";
+                                tbody.appendChild( tr );                                
+                            } );
                         }
                     },
 
                     showCode: function( id ){
-                        var codePanel, resourceList, trs, code, idset;
+                        var codePanel, resourceList, trs, code, idArray, el;
 
                         codePanel = document.getElementById( "code-panel" );
                         resourceList = document.getElementById( "resource-list" );
@@ -1512,18 +1603,7 @@ void function( window, factory ){
 
                         if( id ){
                             code = CodeList.get( id );
-                            document.getElementById( "code" ).innerHTML = formatViewHtml( code );
-
-                            // TODO: snippetsIdSet 改为数组的形式
-                        
-                            idset = code.snippetsIdSet;
-
-                            util.delay( function(){
-                                for( var i in idset ){
-                                    if( StatusPool.arrivedSnippetGet( i ) )
-                                        document.getElementById( "ckey-" + i ).className = "arrive";
-                                }
-                            } );
+                            asnyShowCode( code );
                         }
 
                         trs = resourceList.getElementsByTagName( "tr" );
@@ -1537,8 +1617,8 @@ void function( window, factory ){
                     },
 
                     updateCode: function( code ){
-                        if( currentSelectedCode == code.id )
-                            this.showCode( code.id );
+                        // if( currentSelectedCode == code.id )
+                        //     this.showCode( code.id );
 
                         var rateEl, arriveRowsCountEl, runErrorsEl;
 
@@ -1578,10 +1658,6 @@ void function( window, factory ){
                         var toolbarHeight = 36, toolbarHeight2 = 24;
                         var tr, focusInList;
 
-                        // var preventDefaultBackScroll = function( e ){
-                        //     e.preventDefault && e.preventDefault();  
-                        // };
-
                         var resize = function(){
                             var width, height;
                             width = de.clientWidth;
@@ -1613,14 +1689,12 @@ void function( window, factory ){
                                         focusInList = true,
                                         view.ControlPanel.showCode( codeId );
                             }
-                            // mousewheel: preventDefaultBackScroll
                         } );
 
                         Event.add( codePanel, {
                             click: function(){
                                 focusInList = false;
                             }
-                            // mousewheel: preventDefaultBackScroll
                         } );
 
                         Event.add( document, {
@@ -1839,20 +1913,22 @@ void function( window, factory ){
     }();
 
     var Decorate = host.Decorate = function( window, document ){
-        var Element, appendChild, insertBefore, bind, check, checklist;
+        var Element, appendChild, insertBefore, getAttribute, check, checklist, scriptElements;
 
         Element = window.Element.prototype;
         appendChild = Element.appendChild;
         insertBefore = Element.insertBefore;
+        // getAttribute = Element.getAttribute;
+        scriptElements = document.scripts;
 
-        build = function( fn ){
+        var overideInsertingNodeFunction = function( fn ){
             return function( node ){
                 var me, args, url, code;
 
                 me = this;
                 args = slice.apply( arguments );
 
-                if( node.tagName != "SCRIPT" )
+                if( !node || node.nodeName != "SCRIPT" )
                     return fn.apply( me, args );
 
                 url = node.getAttribute( "src" );
@@ -1864,11 +1940,22 @@ void function( window, factory ){
                     code = new Code( url, content );
                     code.setType( "append" );
                     CodeList.add( code );
+
                     node.removeAttribute( "src" );
+                    // node.setAttribute( "tracker-src", url );
 
                     code.onReady( function(){
-                        node.appendChild( document.createTextNode( code.executiveCode ) );
+                        var index;
+                        
+                        index = util.handle( node );
+                        
+                        node.appendChild(
+                            document.createTextNode( 
+                                "__trackerScriptStart__(" + index + ");" + 
+                                code.executiveCode + ";"  ) );
+
                         fn.apply( me, args );
+                        node.src = url;
                     } );
 
                     view.ControlPanel.addCode( code );
@@ -1889,35 +1976,43 @@ void function( window, factory ){
             };
         };
 
+        // var overideAttributeFunction = function( fn ){
+        //     return function(){
+        //         var args;
+
+        //         args = slice.apply( arguments );
+
+        //         if( this.nodeName != "SCRIPT" )
+        //             return fn.apply( this, args );
+
+        //         if( args[0].toLowerCase() == "src" && 
+        //             this.hasAttribute( "tracker-src" ) &&
+        //             !this.hasAttribute( "src" ) )
+        //             args[0] = "tracker-src";
+
+        //         return fn.apply( this, args );
+        //     }  
+        // };
+
         check = function( item, name ){
             if( item && item.prototype && item.prototype[ name ] )
                 if( item.prototype[ name ] != Element[ name ] )
                     item.prototype[ name ] = Element[ name ];
         };
 
-        checklist = [ window.HTMLElement, window.HTMLHeadElement,
-            window.HTMLBodyElement ];
+        checklist = [ window.HTMLElement, window.HTMLHeadElement, window.HTMLBodyElement ];
 
-        // Element._appendChild = Element.appendChild;
-        Element.appendChild = build( appendChild );
-
-        // Element._insertBefore = Element.insertBefore;
-        Element.insertBefore = build( insertBefore );
+        Element.appendChild = overideInsertingNodeFunction( appendChild );
+        Element.insertBefore = overideInsertingNodeFunction( insertBefore );
+        // Element.getAttribute = overideAttributeFunction( getAttribute );
 
         util.forEach( checklist, function( object ){
             check( object, "appendChild" );
             check( object, "insertBefore" );
+            // check( object, "getAttribute" );
         } );
 
-        // var trackerTasks = [];
-
-        // setInterval( function(){
-        //     for( var i = 0, t, l = trackerTasks.length; i < l && i < 1000; i ++ )
-        //         StatusPool.arrivedSnippetPut( trackerTasks.shift() );
-        // }, 1e2 );
-        
         window.__tracker__ = function( id /* , id, id, ... */ ){
-            // push.apply( trackerTasks, arguments );
             for( var i = 0, l = arguments.length; i < l; i ++ )
                 StatusPool.arrivedSnippetPut( arguments[ i ] );
         };
@@ -1929,35 +2024,59 @@ void function( window, factory ){
         window.__trackerMockTop__ = function(){
             return {
                 location: {},
-                document: {
-                    write: util.blank
-                }
+                document: { write: util.blank }
             };
+        };
+
+        window.__trackerScriptStart__ = function( scriptIndex ){
+            var script;
+            
+            script = scriptIndex === undefined ? 
+                scriptElements[ scriptElements.length - 1 ] :
+                util.handle( scriptIndex );
+
+            if( script && script.hasAttribute( "tracker-src" ) )
+                script.src = script.getAttribute( "tracker-src" );
+
+            setTimeout( function(){
+                if( script.onreadystatechange )
+                    script.onreadystatechange();
+            }, 0 );
         };
     };
 
-        var Tracker = function(){
-            var cmd = function( cmd ){
-                var n = arguments[1];
-                switch( cmd ){
-                    case "code":
-                        return typeof n != "undefined" ?
-                            CodeList.get( n ) : CodeList.list();
-                    default:
-                        return "no such command";
-                }
-            };
+    var Tracker = function(){
+        var cmd = function( cmd ){
+            var n = arguments[1];
+            switch( cmd ){
+                case "code":
+                    return typeof n != "undefined" ?
+                        CodeList.get( n ) : CodeList.list();
+                default:
+                    return "no such command";
+            }
+        };
 
-            cmd.toString = function(){
-                return "undefined";
-            };
+        var page = function( fn ){
+            var win, doc;
 
-        return { cmd: cmd };
-        }();
+            win = view.ControlFrame.getWindow( "tracker_page" );
+            doc = win.document;
+
+            return fn( win, doc );
+        };
+
+        cmd.toString =
+        page.toString = function(){
+            return "undefined";
+        };
+
+        return { cmd: cmd, page: page };
+    }();
 
     // business logic
     void function(){
-        var currentCodeId, controllerOnLoad, updateInterval, checkCodes, codes;
+        var currentCodeId, controllerOnLoad, updateInterval, checkCodes, hookDebuggingCode, codes;
 
         controllerOnLoad = promise.fuze()
         host.TrackerGlobalEvent = Event.bind();
@@ -1971,71 +2090,76 @@ void function( window, factory ){
             } );
         };
 
+        hookDebuggingCode = function( content, code ){
+            return "__trackerScriptStart__();" + content;
+        };
+
         view.ControlFrame.pageBuilder( function( html ){
             var pm = new promise,
                 charset = document.characterSet,
-                embedScriptRegx = /(<\bscript\b[^>]*?>)([\s\S]*?)(<\/\bscript\b>)/gi,
-                srcPropertyRegx = / src=([\"\'])([^\"\']+)\1/,
-                typePropertyRegx = / type=([\"\'])([^\"\']+)\1/,                
-                scriptRegx = /<\bscript\b [^>]*src=([\"\'])([^\"\']+)\1[^>]*>[\r\n\s]*<\/\bscript\b>/gi,
+                allScriptTagRegx = /(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi,
+                srcPropertyRegx = / src=["']([^"']+)["']/,
+                typePropertyRegx = / type=["']([^"']+)["']/,
+                scriptRegx = /(<script\b [^>]*src=["']([^"']+)["'][^>]*>)\s*(<\/script>)/gi,
+
                 firstTagRegx = /(<[^>]+>)/,
-                pageStartingOf = "<script> parent.document.Decorate(window, document); </script>";
+                pageStartingOf = "<script> parent.document.Decorate( window, document ); </script>";
 
             util.request( location.href, charset ).then( function( html ){
-                AsynStringReplacer.replace( html, embedScriptRegx, 
+                AsynStringReplacer.replace( html, allScriptTagRegx, 
                     function( raw, openTag, content, closeTag ){
                         var pm, code;
                         
                         pm = new promise;
 
-                        if( srcPropertyRegx.test( openTag ) ){
+                        if( srcPropertyRegx.test( openTag ) ){ // is outer script
                             view.Loading.addCount();
                             pm.resolve( raw );
                             return pm;
                         }
 
                         if( typePropertyRegx.test( openTag ) &&
-                            RegExp.$2.toLowerCase() != "text/javascript" ){
+                            RegExp.$1.toLowerCase() != "text/javascript" ){ // is not javascript
                             // TODO: 对于非 text/javascript，将来也放到 code list 中，以便于查询
                             pm.resolve( raw );
                             return pm;
                         }
 
+                        // embed script
                         view.Loading.addCount();
+
                         code = new Code( null, content );
                         code.setType( "embed" );
                         CodeList.add( code );
 
                         code.onReady( function(){
-                            pm.resolve( openTag + "\r\n" + code.executiveCode
-                                + "\r\n" + closeTag );
+                            pm.resolve( openTag + hookDebuggingCode( code.executiveCode, code ) + 
+                                closeTag );
                             view.Loading.addProgress();
                         } );
+
                         return pm;
                     }
                 ).then( function( html ){
                     AsynStringReplacer.replace( html, scriptRegx, 
-                        function( raw, a, url ){
+                        function( raw, openTag, url, closeTag ){
                             var pm;
-                            
+
                             pm = new promise;
-                            // url = util.param( url, "tracker-hook", util.id() );
-                            // url = util.param( url, "tracker-random", util.random() );
-                            // view.Loading.addCount();
+                            openTag = openTag.replace( srcPropertyRegx, " tracker-src='$1'" );
+                            // TODO: 对于很多没有文件名的，需要优化一下界面显示方案
 
                             util.intelligentGet( url ).then( function( content ){
                                 var code;
-
-                                // TODO: 对于很多没有文件名的，需要优化一下界面显示方案
 
                                 code = new Code( url, content );
                                 code.setType( "link" );
                                 CodeList.add( code );
 
                                 code.onReady( function(){
-                                    pm.resolve( "<script tracker-src='" + url + "'>\r\n" + 
-                                        code.executiveCode + "\r\n</script>" );
                                     view.Loading.addProgress();
+                                    pm.resolve( openTag + 
+                                        hookDebuggingCode( code.executiveCode, code ) + closeTag );
                                 } );
                             }, function(){
                                 var code;
@@ -2045,12 +2169,13 @@ void function( window, factory ){
                                 CodeList.add( code );
 
                                 code.onReady( function(){
+                                    view.Loading.addProgress();
                                     pm.resolve( raw );
                                 } );
                             } );
 
                             return pm;
-                        } 
+                        }
                     ).then( function( html ){
                         view.Loading.hide();
                         util.delay( function(){
@@ -2084,9 +2209,9 @@ void function( window, factory ){
             base.setAttribute( "target", "tracker_main" );
             head.appendChild( base );
 
-                Event.add( window, "unload", function(){
-                    location.assign( location.href );
-                } );
+            Event.add( window, "unload", function(){
+                location.assign( location.href );
+            } );
 
             global.Tracker = Tracker;
         } );
@@ -6283,7 +6408,8 @@ void function( window, factory ){
             parse,
             sourceMap;
 
-        var _slice = [].slice, _push = [].push, _join = [].join, guid, currentCode, snippetsIdSet;
+        var _slice = [].slice, _push = [].push, _join = [].join, guid, currentCode, 
+            snippetsIdSet;
 
 
         var StatusPool = document.StatusPool;

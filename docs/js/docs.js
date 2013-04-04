@@ -38,4 +38,12 @@ $( function(){
                 return html.replace( "$uid", uid );
             } );
     } );
+
+    $( ".bookmarks" ).popover( {
+        animation: true,
+        placement: "top",
+        html: true,
+        trigger: "hover",
+        container: "body"
+    } );
 } );
