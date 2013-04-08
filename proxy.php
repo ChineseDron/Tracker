@@ -14,12 +14,14 @@
     };
 
     $content = get_url( $url );
-    $content = str_replace( "\\", "\\\\", $content );
-    $content = str_replace( "\r", "\\r", $content );
-    $content = str_replace( "\n", "\\n", $content );
-    $content = str_replace( "\t", "\\t", $content );
-    $content = str_replace( "\"", "\\\"", $content );
+    $encode_content = json_encode( $content ); 
 
-    $json = "document.$callback({\"url\":\"$url\",\"content\":\"$content\"});";
+    if ( $content && $encode_content == "null" )
+        $encode_content = json_encode( iconv( "GBK", "UTF-8", $content ) );
+
+    $data = "{\"url\":\"" . $url . "\",\"content\":" . $encode_content . "}";
+
+    $json = "document.$callback(" . $data . ");";
+
     header( "Content-Type: application/x-javascript" );
     echo $json;

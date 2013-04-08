@@ -1,6 +1,6 @@
 /** 
  * Tracker.js
- * @version 1.6
+ * @version 1.6.2
  * @author dron
  * @create 2012-12-22
  */
@@ -31,7 +31,7 @@ void function( window, factory ){
     push = [].push;
     floor = Math.floor;
     max = Math.max;
-    version = "1.6";
+    version = "1.6.2";
 
     var getShareLink = function(){
         var url = "http://service.weibo.com/share/share.php";
@@ -273,15 +273,16 @@ void function( window, factory ){
             excapeRegx: excapeRegx,
 
             fileName: function( url ){
-                var start, end;
+                // var start, end;
 
-                start = url.lastIndexOf( "/" );
-                end = max( url.indexOf( "#" ), url.indexOf( "?" ) );
+                // start = url.lastIndexOf( "/" );
+                // end = max( url.indexOf( "#" ), url.indexOf( "?" ) );
 
-                if( end == -1 || end == start + 1 )
-                    end = url.length;
+                // if( end == -1 || end == start + 1 )
+                //     end = url.length;
 
-                return url.slice( start + 1, end );
+                // return url.slice( start + 1, end );
+                return url;
             },
 
             time: function(){
@@ -312,20 +313,19 @@ void function( window, factory ){
 
             isntCrossDomain: function(){
                 var locationOriginRegx, hasProtocol;
-                
+
                 locationOriginRegx = new RegExp( "^" + 
-                    excapeRegx( location.protocol + "//" + host.domain ), "i" );
+                    excapeRegx( location.protocol + "//" + host.location.host ), "i" );
                 hasProtocol = /^(\w+:)?\/\//i;
 
                 return function( url ){
-                    return !hasProtocol.test( url ) || 
-                        locationOriginRegx.test(url);
+                    // return false;
+                    return !hasProtocol.test( url ) || locationOriginRegx.test(url);
                 }
             }(),
 
             intelligentGet: function( url ){
-                return util.isntCrossDomain( url ) ? 
-                    util.request( url ) : RemoteProxy.get( url );
+                return util.isntCrossDomain( url ) ? util.request( url ) : RemoteProxy.get( url );;
             },
 
             request: function( url, charset ){
@@ -760,8 +760,8 @@ void function( window, factory ){
                     return a + "__trackerMockTop__()" + c;
                 } );
 
-                code = "try{" + code + "}catch(e){__trackerError__('" + 
-                    this.CodeInstance.id + "',e.message);throw e;}";
+                code = "try{" + code + "}catch(__trackerErrorData__){__trackerError__('" + 
+                    this.CodeInstance.id + "',__trackerErrorData__.message);throw __trackerErrorData__;}";
 
                 return code;
             },
@@ -855,11 +855,7 @@ void function( window, factory ){
                 var create = function(){
                     var span;
 
-                    layer = util.makeElement( "div", "position: fixed; padding: 30px; " +
-                    "border-radius: 10px; background: rgba(0,0,0,.75); " + 
-                    "font-size: 20px; line-height: 20px; text-align: center; " +
-                    "color: #fff; bottom: 50px; left: 50px; box-shadow: 0 2px 5px #000; " +
-                    "z-index: 65535; font-family: \"Courier New\", \"Heiti SC\", \"Microsoft Yahei\";" );
+                    layer = util.makeElement( "div", "position: fixed; padding: 30px; border-radius: 10px; background: rgba(0,0,0,.75); font-size: 20px; line-height: 20px; text-align: center; color: #fff; bottom: 50px; left: 50px; box-shadow: 0 2px 5px #000; z-index: 65535; font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei';" );
                     layer.innerHTML = "Analysising <span>...</span> <span>(0/0)</span>";
                     body.appendChild( layer );
                     host.documentElement.scrollTop = body.scrollTop = 0;
@@ -943,8 +939,7 @@ void function( window, factory ){
                 var template = function( url, title, charset ){
                     charset = charset || "utf-8";
                     return [
-                        "<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Frameset//EN'" + 
-                            " 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd'>",
+                        "<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Frameset//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd'>",
                         "<html>",
                         "<head>",
                             "<meta charset='" + charset + "'>",
@@ -953,8 +948,7 @@ void function( window, factory ){
                         "</head>",
                         "<frameset rows='*,0' framespacing='0' frameborder='no'>",
                             "<frame src='" + url + "' name='tracker_page' />",
-                            "<frame src='about:blank' name='tracker_controller'" + 
-                                " noresize='yes' />",
+                            "<frame src='about:blank' name='tracker_controller' noresize='yes' />",
                         "</frameset>",
                         "</html>"
                     ].join( "" );
@@ -1123,22 +1117,22 @@ void function( window, factory ){
                 var state = function( state ){
                     switch( state ){
                         case "normal":
-                            return "&#27491;&#24120;"; // 正常
+                            return "&#27491;&#24120;";
                         case "timeout":
-                            return "<span class='stress'>&#36229;&#26102;</span>"; // 超时
+                            return "<span class='stress'>&#36229;&#26102;</span>";
                         case "empty":
-                            return "<span class='stress'>&#26080;&#20869;&#23481;</span>"; // 无内容
+                            return "<span class='stress'>&#26080;&#20869;&#23481;</span>";
                     }
                 };
 
                 var type = function( code ){
                     switch( code.type ){
                         case "embed":
-                            return "&#20869;&#23884;"; // 内嵌
+                            return "&#20869;&#23884;";
                         case "link":
-                            return "&#25991;&#20214;&#38142;&#25509;"; // 文件链接
+                            return "&#25991;&#20214;&#38142;&#25509;";
                         case "append":
-                            return "&#21160;&#24577;&#25554;&#20837;"; // 动态插入
+                            return "&#21160;&#24577;&#25554;&#20837;";
                     };
                 };
 
@@ -1158,74 +1152,40 @@ void function( window, factory ){
                             "<meta name='author' content='dron'>",
                             "<title>Tracker!</title>",
                             "<style>",
-                                "body, div, ul, ol, li, h1, h2, h3, h4, h5, h6, pre," + 
-                                    " code, input, textarea, p, th, td{ margin: 0; " +
-                                    "padding: 0; }",
-
+                                "body, div, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, code, input, textarea, p, th, td{ margin: 0; padding: 0; }",
                                 "html,body{ overflow: hidden; margin: 0; padding: 0; }",
-                                "body,pre{ font-family: \"Courier New\", \"Heiti SC\", \"Microsoft Yahei\"; }",
-                                
+                                "body,pre{ font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei'; }",
                                 "li{ list-style: none; }",
-                                ".clearfix:after{ content: '/20'; display: block; " +
-                                    "height: 0; overflow: hidden; clear: both; }",
+                                ".clearfix:after{ content: '/20'; display: block; height: 0; overflow: hidden; clear: both; }",
                                 ".stress{ color: #f66; }",
                                 ".clearfix{ zoom: 1; }",
                                 "#wrapper{ }",
-                                "#toolbar{ width: auto; height: 20px; padding: 6px; " + 
-                                    "border-bottom: 1px solid #505050; line-height: 20px; " +
-                                    "background: #e6e6e6; " + toolbarBorderTop + " }",
-                                
-                                "#toolbar .version{ float: right; font-size: 12px; " +
-                                    "font-style: italic; }",
-
-                                "#toolbar .logo{ float: right; display: block; " + 
-                                    "width: 54px; height: 20px; " +
-                                    "background: transparent " +
-                                    "url(" + resourcePath + "logo.gif) " +
-                                    "no-repeat 0 center; }",
-
-                                "#toolbar .link{ float: right; display: block; " +
-                                    "font-size: 14px; text-decoration: none; " +
-                                    "color: #999; margin-right: 18px; line-height: 20px }",
-
+                                "#toolbar{ width: auto; height: 20px; padding: 6px; border-bottom: 1px solid #505050; line-height: 20px; background: #e6e6e6; " + toolbarBorderTop + " }",
+                                "#toolbar .logo-bar{ float: right; width: 54px; height: 20px; overflow: hidden; cursor: default; -webkit-transition: width .2s ease; -moz-transition: width .2s ease; -o-transition: width .2s ease; }",
+                                "#toolbar .logo-bar:hover{ width: 100px; }",
+                                "#toolbar .logo{ display: inline-block; width: 54px; height: 20px; background: transparent url(" + resourcePath + "logo.gif) no-repeat 0 center; }",
+                                "#toolbar .version{ display: inline-block; height: 20px; font-size: 12px; font-style: italic; position: relative; top: -10px; }",
+                                "#toolbar .link{ float: right; display: block; font-size: 14px; text-decoration: none; color: #999; margin-right: 18px; line-height: 20px }",
                                 "#toolbar .link:hover{ color: #000; }",
-                                
-                                "#toolbar .button{ width: 20px; height: 20px; " + 
-                                    "display: inline-block; border-radius: 2px; " + 
-                                    "cursor: default; margin-right: 7px; }",
-                                
-                                "#toolbar .button:hover{ background-color: #d7dde5; " + 
-                                    "border: 1px solid #666;" +
-                                    "margin: -1px 6px -1px -1px; }",
-                                
-                                ".close{ background: transparent url(" + resourcePath + 
-                                    "close.gif) no-repeat center center; }",
-                                
-                                ".toggle{ background-image: url(" + resourcePath + 
-                                    "mode.gif); }",
+                                "#toolbar .button{ width: 20px; height: 20px; display: inline-block; border-radius: 2px; cursor: default; margin-right: 7px; }",
+                                "#toolbar .button:hover{ background-color: #d7dde5; border: 1px solid #666; margin: -1px 6px -1px -1px; }",
+                                ".close{ background: transparent url(" + resourcePath + "close.gif) no-repeat center center; }",
+                                ".toggle{ background-image: url(" + resourcePath + "mode.gif); }",
                                 ".toggle-win{ background-position: 0 -20px; }",
-                                
                                 "#main{ position: relative; }",
-
                                 "#resource-panel{  }",
-                                "#resource-panel table{ border-collapse: collapse; " +
-                                    "height: 24px; min-width: 900px; }",
-                                "#resource-panel table th{ background-color: #e6e6e6;" +
-                                    "font-size: 14px; font-weight: 400; color: #333; }",
-
-                                "#resource-list{ background-color: #fff; " +
-                                    "overflow: auto; cursor: default; }",
-                                "#resource-list table td{ font-size: 14px; " +
-                                    "font-weight: 400; text-indent: 4px; }",
-
-                                "#resource-list .ellipsis{ white-space: nowrap; " +
-                                    "text-overflow: ellipsis; overflow: hidden; }",
-
-                                "#resource-list .none{ padding: 10px; font-size: 14px;" +
-                                    "color: #666; }",
-
+                                "#resource-panel table{ border-collapse: collapse; height: 30px; min-width: 900px; }",
+                                "#resource-panel table th{ background-color: #e6e6e6; font-size: 14px; font-weight: 400; color: #333; }",
+                                "#resource-list{ background-color: #fff; overflow: auto; cursor: default; }",
+                                "#resource-list table td{ line-height: 30px; font-size: 14px; font-weight: 400; text-indent: 4px; }",
+                                "#resource-list .ellipsis{ white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }",
+                                "#resource-list .none{ padding: 10px; font-size: 14px; color: #666; }",
                                 "#resource-list .index{ width: 38px; }",
-                                "#resource-list .name{ width: 158px; }",
+                                "#resource-list .name{ width: 158px; text-indent: 6px; position: relative; }",
+                                "#resource-list .name .hidden-name{ display: none; padding-right: 6px; background: #ffc; position: absolute; left: 0; top: 0; }",
+                                "#resource-list .name:hover{ text-overflow: none; overflow: visible; }",
+                                "#resource-list .name:hover span{ visibility: hidden; }",
+                                "#resource-list .name:hover .hidden-name{ display: block; }",
                                 "#resource-list .type{ width: 68px; }",
                                 "#resource-list .cover{ width: 78px; }",
                                 "#resource-list .cover-line{ width: 68px; }",
@@ -1235,163 +1195,74 @@ void function( window, factory ){
                                 "#resource-list .rerror{ width: 68px; }",
                                 "#resource-list .serror{ width: 68px; }",
                                 "#resource-list .state{ width: 48px; }",
-
                                 "#resource-list .double{ background-color: #eee; }",
                                 "#resource-list .over{ background-color: #d9e5d5; }",
                                 "#resource-list .selected{ background-color: #c1e5b5; }",
-                                "#resource-list .embed{ color: #a8a8a8; " +
-                                    "font-style: italic; }",
-                                
-                                "#code-panel{ position: absolute; left: 222px; " +
-                                    "top: 0; border: 1px solid #b3b3b3;" +
-                                    " background: #fff; display: none; }",
-
-                                "#code-toolbar{ background-color: #e6e6e6; " +
-                                    "width: auto; height: 16px; padding: 3px 0 3px 5px; " +
-                                    "border-bottom: 1px solid #b3b3b3; }",
-
-                                "#code-toolbar .button{ width: 16px; height: 16px; " + 
-                                    "display: inline-block; border-radius: 2px; " + 
-                                    "cursor: default; }",
-
-                                "#code-toolbar .button:hover{ background-color: #d7dde5; " + 
-                                    "border: 1px solid #666;" +
-                                    "margin: -1px; }",
-
-                                "#code-toolbar .label{ line-height: 16px; " +
-                                    "font-size: 14px; display: inline-table; " + 
-                                    "height: 16px; color: #333; }",
-
-                                "#code-toolbar .arrive{ background-color: #c1e5b5; " +
-                                    "width: 12px; height: 12px; margin: 1px; " +
-                                    "border: 1px solid #b3b3b3; }",
-
-                                "#code-toolbar .unarrive{ " +
-                                    "background-color: transparent; }",
-
+                                "#resource-list .embed{ color: #a8a8a8; font-style: italic; }",
+                                "#code-panel{ position: absolute; left: 222px; top: 0; border: 1px solid #b3b3b3; background: #fff; display: none; }",
+                                "#code-toolbar{ background-color: #e6e6e6; width: auto; height: 22px; line-height: 22px; padding: 3px 0 3px 5px; border-bottom: 1px solid #b3b3b3; }",
+                                "#code-toolbar .button{ width: 20px; height: 20px; float: left; border-radius: 2px; cursor: default; }",
+                                "#code-toolbar .button:hover{ background-color: #d7dde5; border: 1px solid #666; margin: -1px; }",
+                                "#code-toolbar .label{ font-size: 14px; color: #333; float: left; height: 20px; }",
+                                "#code-toolbar .arrive{ background-color: #c1e5b5; width: 14px; height: 14px; margin: 2px; border: 1px solid #b3b3b3; }",
+                                "#code-toolbar .unarrive{ background-color: transparent; }",
                                 "#code{ overflow: scroll; }",
                                 "#code .timeout-code, #code .empty-code{ padding: 10px; font-size: 14px; }",
                                 ".block{ position: relative; background-color: #fff; }",
-                                ".block pre{ display: block; line-height: 20px; " + 
-                                    "font-size: 13px; margin: 0; padding: 0; }",
-                                
-                                ".block pre .arrive{ background-color: #c1e5b5; " +
-                                    "padding: 0 3px; border-radius: 2px; " + 
-                                    "margin-left: -3px; color: #000; }",
-                                
-                                ".block .gutter{ position: absolute; left: 0; top: 0; " +
-                                    "width: 30px; background-color: #f7f7f7; " +
-                                    "color: #808080; padding: 5px; text-align: right; }",
-                                
-                                ".block .lines{ position: absolute; left: 40px; " +
-                                    "top: 0; padding: 5px; color: #333; }",
-
-                                "#loading{ position: absolute; left: 0; top: 0; background: #000;" + 
-                                    "opacity: .5; width: 100%; height: 100%; text-align: left; }",
-
-                                "#loading span{ line-height: 35px; color: #fff; " +
-                                    "font-size: 14px; font-weight: 700; padding-left: 70px; }",
-
+                                ".block pre{ display: block; line-height: 20px; font-size: 13px; margin: 0; padding: 0; }",
+                                ".block pre .arrive{ background-color: #c1e5b5; padding: 0 3px; border-radius: 2px; margin-left: -3px; color: #000; }",
+                                ".block .gutter{ position: absolute; left: 0; top: 0; width: 30px; background-color: #f7f7f7; color: #808080; padding: 5px; text-align: right; }",
+                                ".block .lines{ position: absolute; left: 40px; top: 0; padding: 5px; color: #333; }",
+                                "#loading{ position: absolute; left: 0; top: 0; background: #000; opacity: .5; width: 100%; height: 100%; text-align: left; }",
+                                "#loading span{ line-height: 35px; color: #fff; font-size: 14px; font-weight: 700; padding-left: 70px; }",
                                 "#loading span#waitTime{ padding-left: 10px; }",
                             "</style>",
                         "</head>",
                         "<body>",
                             "<div id='wrapper'>",
                                 "<div id='toolbar'>",
-                                    "<a class='version'>" + version + "</a>",
-                                    "<a class='logo' target='_blank'></a>",
-                                    // 推荐给好友
-                                    "<a class='link' href='" + getShareLink() + "' target='_blank'>" + 
-                                        "&#25512;&#33616;&#32473;&#22909;&#21451;</a>",                                    
-                                    // 报错
-                                    "<a class='link' href='https://github.com/ChineseDron/Tracker/issues/new' target='_blank'>" + 
-                                        "&#25253;&#38169;</a>",
-                                    // 帮助
-                                    "<a class='link' href='http://ucren.com/tracker/docs/index.html' target='_blank'>" + 
-                                        "&#24110;&#21161;</a>",
+                                    "<div class='logo-bar'><a class='logo' target='_blank'></a><a class='version'>" + version + "</a></div>",
+                                    "<a class='link' href='" + getShareLink() + "' target='_blank'>&#25512;&#33616;&#32473;&#22909;&#21451;</a>", 
+                                    "<a class='link' href='https://github.com/ChineseDron/Tracker/issues/new' target='_blank'>&#25253;&#38169;</a>",
+                                    "<a class='link' href='http://ucren.com/tracker/docs/index.html' target='_blank'>&#24110;&#21161;</a>",
                                     "<a class='button close' action='close'></a>",
-                                    "<a class='button toggle' id='toggle-btn' " +
-                                        "action='toggleMode'></a>",
+                                    "<a class='button toggle' id='toggle-btn' action='toggleMode'></a>",
                                 "</div>",
                                 "<div id='main' class='clearfix'>",
                                     "<div id='resource-panel'>",
-                                        "<table cellspacing='0' cellpadding='0'" +
-                                        " border='1' borderColor='#b3b3b3' width='100%'>",
+                                        "<table cellspacing='0' cellpadding='0' border='1' borderColor='#b3b3b3' width='100%'>",
                                             "<tr>",
-                                                // 序号
                                                 "<th width='40'>&#24207;&#21495;</th>",
-                                                // 名称
                                                 "<th width='160'>&#21517;&#31216;</th>",
-                                                // 类型
                                                 "<th width='70'>&#31867;&#22411;</th>",
-                                                // 执行覆盖率
-                                                "<th width='80'>&#25191;&#34892;" +
-                                                    "&#35206;&#30422;&#29575;</th>",
-                                                // 执行行数
-                                                "<th width='70'>",
-                                                    "&#25191;&#34892;&#34892;&#25968;",
-                                                "</th>",
-                                                // 总行数
-                                                "<th width='60'>&#24635;&#34892;" +
-                                                    "&#25968;</th>",
-                                                // 原始大小
-                                                "<th width='90'>",
-                                                    "&#21407;&#22987;&#22823;&#23567;",
-                                                "</th>",
-                                                // 解压大小
-                                                "<th width='90'>",
-                                                    "&#35299;&#21387;&#22823;&#23567;",
-                                                "</th>",
-                                                // 执行报错
-                                                "<th width='70'>",
-                                                    "&#25191;&#34892;&#25253;&#38169;",
-                                                "</th>",
-                                                // 语法错误
-                                                "<th width='70'>",
-                                                    "&#35821;&#27861;&#38169;&#35823;",
-                                                "</th>",
-                                                // 状态
-                                                "<th width='50'>",
-                                                    "&#29366;&#24577;",
-                                                "</th>",
+                                                "<th width='80'>&#25191;&#34892;&#35206;&#30422;&#29575;</th>",
+                                                "<th width='70'>&#25191;&#34892;&#34892;&#25968;</th>",
+                                                "<th width='60'>&#24635;&#34892;&#25968;</th>",
+                                                "<th width='90'>&#21407;&#22987;&#22823;&#23567;</th>",
+                                                "<th width='90'>&#35299;&#21387;&#22823;&#23567;</th>",
+                                                "<th width='70'>&#25191;&#34892;&#25253;&#38169;</th>",
+                                                "<th width='70'>&#35821;&#27861;&#38169;&#35823;</th>",
+                                                "<th width='50'>&#29366;&#24577;</th>",
                                                 "<th width='*'>&nbsp;</th>",
                                             "</tr>",
                                         "</table>",
-                                        "<div id='resource-list'>",
-                                        "</div>",
+                                        "<div id='resource-list'></div>",
                                     "</div>",
                                     "<div id='code-panel'>",
                                         "<div id='code-toolbar'>",
                                             "<a class='button close' id='close-code'></a>",
-                                            // 图示
-                                            "<span class='label' " +
-                                                "style='margin-left: 24px;'>",
-                                                "&#22270;&#31034;:",
-                                            "</span>",
-                                            "<span class='label arrive' " +
-                                                "style='margin-left: 20px;'></span>",
-                                            // 已执行
-                                            "<span class='label' " +
-                                                "style='margin-left: 5px;'>",
-                                                "&#24050;&#25191;&#34892;",
-                                            "</span>",
-                                            "<span class='label arrive unarrive' " +
-                                                "style='margin-left: 15px;'></span>",
-                                            // 未执行
-                                            "<span class='label' " +
-                                                "style='margin-left: 5px;'>",
-                                                "&#26410;&#25191;&#34892;",
-                                            "</span>",
+                                            "<span class='label' style='margin-left: 24px;'>&#22270;&#31034;:</span>",
+                                            "<span class='label arrive' style='margin-left: 20px;'>&#12288;</span>",
+                                            "<span class='label' style='margin-left: 5px;'>&#24050;&#25191;&#34892;</span>",
+                                            "<span class='label arrive unarrive' style='margin-left: 15px;'>&#12288;</span>",
+                                            "<span class='label' style='margin-left: 5px;'>&#26410;&#25191;&#34892;</span>",
                                         "</div>",
                                         "<div id='code'></div>",
                                     "</div>",
                                 "</div>",
                             "</div>",
-                            // 请稍等，收集中
                             "<div id='loading'>",
-                                "<span>",
-                                    "&#35831;&#31245;&#31561;&#65292;&#25910;&#38598;&#20013;...",
-                                "</span>",
+                                "<span>&#35831;&#31245;&#31561;&#65292;&#25910;&#38598;&#20013;...</span>",
                                 "<span id='waitTime'></span>",
                             "</div>",
                         "</body>",
@@ -1406,33 +1277,18 @@ void function( window, factory ){
                     fileNameClass = code.fileName == "embed" ? "embed" : "";
 
                     return [
-                        "<tr class='" + trClassName + 
-                            "' data-code-id='" + code.id + "'>",
-                            "<td width='40' height='24'><div class='ellipsis index'>" + 
-                            ( code.index + 1 ) + "</div></td>",
-                            "<td width='160'><div class='ellipsis name " + 
-                                fileNameClass + "'>" + code.fileName + "</div></td>",
-                            "<td width='70'><div class='ellipsis type'>" + 
-                                type( code ) + "</div></td>",
-                            "<td width='80'><div id='code-" + code.id + "-rate' " +
-                                "class='ellipsis cover'>" + rate( code ) + 
-                                "</div></td>",
-                            "<td width='70'><div id='code-" + code.id +
-                                "-arriveRowsCount' class='ellipsis cover-line'>" + 
-                                code.arriveRowsCount + "</div></td>",
-                            "<td width='60'><div class='ellipsis lines'>" + 
-                                code.rowsCount + "</div></td>",
-                            "<td width='90'><div class='ellipsis size'>" + 
-                                size( code.size ) + "</div></td>",
-                            "<td width='90'><div class='ellipsis bsize'>" + 
-                                size( code.beautifySize ) + "</div></td>",
-                            "<td width='70'><div id='code-" + code.id + 
-                                "-runErrors' class='ellipsis rerror'>" + 
-                                yesno( code.runErrors ) + "</div></td>",
-                            "<td width='70'><div class='ellipsis serror'>" + 
-                                yesno( code.syntaxErrors ) + "</div></td>",
-                            "<td width='50'><div class='ellipsis state'>" + 
-                                state( code.state ) + "</div></td>",
+                        "<tr class='" + trClassName + "' data-code-id='" + code.id + "'>",
+                            "<td width='40' height='24'><div class='ellipsis index'>" + ( code.index + 1 ) + "</div></td>",
+                            "<td width='160' valign='top'><div class='ellipsis name " + fileNameClass + "'><span>" + code.fileName + "</span><div class='hidden-name'>" + code.fileName + "</div></div></td>",
+                            "<td width='70'><div class='ellipsis type'>" + type( code ) + "</div></td>",
+                            "<td width='80'><div id='code-" + code.id + "-rate' class='ellipsis cover'>" + rate( code ) + "</div></td>",
+                            "<td width='70'><div id='code-" + code.id + "-arriveRowsCount' class='ellipsis cover-line'>" + code.arriveRowsCount + "</div></td>",
+                            "<td width='60'><div class='ellipsis lines'>" + code.rowsCount + "</div></td>",
+                            "<td width='90'><div class='ellipsis size'>" + size( code.size ) + "</div></td>",
+                            "<td width='90'><div class='ellipsis bsize'>" + size( code.beautifySize ) + "</div></td>",
+                            "<td width='70'><div id='code-" + code.id + "-runErrors' class='ellipsis rerror'>" + yesno( code.runErrors ) + "</div></td>",
+                            "<td width='70'><div class='ellipsis serror'>" + yesno( code.syntaxErrors ) + "</div></td>",
+                            "<td width='50'><div class='ellipsis state'>" + state( code.state ) + "</div></td>",
                             "<td width='*'></td>",
                         "</tr>"
                     ].join( "" );
@@ -1449,16 +1305,12 @@ void function( window, factory ){
                         } );
 
                         return [
-                            "<table cellspacing='0' cellpadding='0' border='1' " +
-                            "borderColor='#b3b3b3' width='100%'>",
+                            "<table cellspacing='0' cellpadding='0' border='1' borderColor='#b3b3b3' width='100%'>",
                                 htmls.join( "" ),
                             "</table>"
                         ].join( "" );   
                     }else{
-                        // 该网页没有任何 JS 代码
-                        return "<div class='none'>&#35813;&#32593;&#39029;&#27809;" +
-                            "&#26377;&#20219;&#20309;&#32;&#74;&#83;&#32;&#20195;" +
-                            "&#30721;&#12290;</div>";
+                        return "<div class='none'>&#35813;&#32593;&#39029;&#27809;&#26377;&#20219;&#20309;&#32;&#74;&#83;&#32;&#20195;&#30721;&#12290;</div>";
                     }
                 };
 
@@ -2101,11 +1953,12 @@ void function( window, factory ){
                 srcPropertyRegx = / src=["']([^"']+)["']/,
                 typePropertyRegx = / type=["']([^"']+)["']/,
                 scriptRegx = /(<script\b [^>]*src=["']([^"']+)["'][^>]*>)\s*(<\/script>)/gi,
-
+                ieConditionalCommentsRegx = /<!--\[if .*IE.*\]>[\s\S]*?<!\[endif\]-->/gi,
                 firstTagRegx = /(<[^>]+>)/,
                 pageStartingOf = "<script> parent.document.Decorate( window, document ); </script>";
 
             util.request( location.href, charset ).then( function( html ){
+                html = html.replace( ieConditionalCommentsRegx, "" );
                 AsynStringReplacer.replace( html, allScriptTagRegx, 
                     function( raw, openTag, content, closeTag ){
                         var pm, code;
@@ -2151,6 +2004,8 @@ void function( window, factory ){
 
                             util.intelligentGet( url ).then( function( content ){
                                 var code;
+
+                                // console.log( url, content );
 
                                 code = new Code( url, content );
                                 code.setType( "link" );
@@ -8252,7 +8107,7 @@ void function( window, factory ){
                                     idBuffer: id
                                 })
                             ),
-                            injectAssistedCode( "}catch(e){throw e;}finally{" ),
+                            injectAssistedCode( "}catch(__trackerErrorData__){throw __trackerErrorData__;}finally{" ),
                             injectCodeFragmentTrace( id ),
                             injectAssistedCode( "}" ),
                             semicolon
