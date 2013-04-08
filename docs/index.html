@@ -29,6 +29,7 @@
                             <li><a href="#source">下载源码<i class="icon-chevron-right"></i></a></li>
                             <li><a href="#changelog">版本历史<i class="icon-chevron-right"></i></a></li>
                             <li><a href="#todos"><i class="icon-chevron-right"></i>未来的功能</a></li>
+                            <li><a href="#faq">常见问题<i class="icon-chevron-right"></i></a></li>
                             <li><a href="#feedback">反馈<i class="icon-chevron-right"></i></a></li>
                         </ul>
                     </div>
@@ -264,8 +265,25 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div class="screenful">
+                            <h2 id="faq">9 常见问题</h2>
+                            <ol>
+                                <li>
+                                    <h4>为什么我的网页 JS 覆盖率这么低？</h4>
+                                    <p>网页打开后，显示的 JS 覆盖率为初始化覆盖率，也就是说当前网页在渲染完成后，您还未进行网页上的任何功能操作之前时的覆盖率，如果此时显示的覆盖率很低，您可以考虑请 JS 做分模块按需加载处理。</p>
+                                </li>
+                                <li>
+                                    <h4>iframe 的内容是否纳入统计？</h4>
+                                    <p>由于受同源策略限制，iframe 他域网页无法进行捕获解析，出于保持相同策略考虑，同域的 iframe 网页也暂不进行统计。</p>
+                                </li>
+                                <li>
+                                    <h4>由 document.write 引入的脚本是否纳入统计？</h4>
+                                    <p>目前还没有这部分内容，以后会考虑支持。</p>
+                                </li>
+                            </ol>
+                        </div>
                         <div class="screenful screenful-last">
-                            <h2 id="feedback">9 反馈</h2>
+                            <h2 id="feedback">10 反馈</h2>
 
                             <p>您可以选择一种您喜欢的方法向我反馈：</p>
                             <p>
