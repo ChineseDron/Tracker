@@ -1,6 +1,6 @@
 /** 
  * Tracker.js
- * @version 1.6.2
+ * @version 1.6.3
  * @author dron
  * @create 2012-12-22
  */
@@ -31,7 +31,7 @@ void function( window, factory ){
     push = [].push;
     floor = Math.floor;
     max = Math.max;
-    version = "1.6.2";
+    version = "1.6.3";
 
     var getShareLink = function(){
         var url = "http://service.weibo.com/share/share.php";
@@ -1199,7 +1199,7 @@ void function( window, factory ){
                                 "#resource-list .over{ background-color: #d9e5d5; }",
                                 "#resource-list .selected{ background-color: #c1e5b5; }",
                                 "#resource-list .embed{ color: #a8a8a8; font-style: italic; }",
-                                "#code-panel{ position: absolute; left: 222px; top: 0; border: 1px solid #b3b3b3; background: #fff; display: none; }",
+                                "#code-panel{ position: absolute; left: 222px; top: 0; border-left: 1px solid #3f3f3f; background: #fff; display: none; box-shadow: -1px 1px 3px #3f3f3f; }",
                                 "#code-toolbar{ background-color: #e6e6e6; width: auto; height: 22px; line-height: 22px; padding: 3px 0 3px 5px; border-bottom: 1px solid #b3b3b3; }",
                                 "#code-toolbar .button{ width: 20px; height: 20px; float: left; border-radius: 2px; cursor: default; }",
                                 "#code-toolbar .button:hover{ background-color: #d7dde5; border: 1px solid #666; margin: -1px; }",
@@ -1611,11 +1611,13 @@ void function( window, factory ){
 
     var Feedback = function(){
         var urlBase, messageBase, url, runErrors, syntaxErrors, timer, timeout, getUrl, me, tt, uid,
-            controllerState, autoStartTimer, autoStartTimeout, started;
+            controllerState, autoStartTimer, autoStartTimeout, started, codeCount, sended, startTime,
+            analysisTime;
 
         urlBase = "http://www.ucren.com/feedback/trace.php?content=";
         messageBase = "Tracker: ";
         url = location.href;
+        codeCount = 0;
         runErrors = 0;
         syntaxErrors = 0;
         tt = host.tracker_type == "bm" ? "bookmarks" : "temp";
@@ -1623,6 +1625,8 @@ void function( window, factory ){
         timeout = 2e3;
         autoStartTimeout = 1e4;
         controllerState = "preshow";
+        startTime = util.time();
+        analysisTime = 0;
 
         getUrl = function(){
             var errors, message;
@@ -1630,11 +1634,14 @@ void function( window, factory ){
             errors = [ runErrors, syntaxErrors ];
             message = encodeURIComponent( [ 
                 messageBase, 
-                "[ BROWSER ]", util.browser.name, 
-                "[ USER ]", tt, uid,
-                "[ ERRORS ]", errors.join( " " ),
-                "[ CONTROLLER ]", controllerState,
-                "[ TARGET ]", url ].join( " " ) );
+                "[ Browser ]", util.browser.name, 
+                "[ User ]", tt, uid,
+                "[ Codes ]", codeCount,
+                "[ Errors ]", errors.join( " " ),
+                "[ Controller ]", controllerState,
+                "[ AnalysisTime ]", analysisTime,
+                "[ Stay ]", ( ( util.time() - startTime ) / 1000 ).toFixed( 1 ) + "s",
+                "[ Url ]", url ].join( " " ) );
 
             return urlBase + message;
         };
@@ -1642,6 +1649,8 @@ void function( window, factory ){
         return me = {
             lookup: function( code ){
                 var me = this;
+
+                codeCount ++;
 
                 code.on( "error", function( type ){
                     switch( type ){
@@ -1654,28 +1663,34 @@ void function( window, factory ){
                     }
                 } );
 
-                if( !started ){
-                    clearTimeout( autoStartTimer );
-                    autoStartTimer = setTimeout( function(){
-                        me.start();
-                    }, autoStartTimeout );  
-                }
+                // if( !started ){
+                //     clearTimeout( autoStartTimer );
+                //     autoStartTimer = setTimeout( function(){
+                //         me.start();
+                //     }, autoStartTimeout );
+                // }
             },
 
             setControllerState: function( state ){
                 controllerState = state;
             },
 
-            start: function(){
-                clearTimeout( timer );
-                timer = setTimeout( this.send, timeout );
-                started = true;
+            setAnalysisEnd: function(){
+                analysisTime = ( ( util.time() - startTime ) / 1000 ).toFixed( 1 ) + "s";
             },
 
+            // start: function(){
+            //     clearTimeout( timer );
+            //     timer = setTimeout( this.send, timeout );
+            //     started = true;
+            // },
+
             send: function(){
-                clearTimeout( timer );
-                new Image().src = getUrl();
-                runErrors = syntaxErrors = 0;
+                if( sended )
+                    return ; 
+                // clearTimeout( timer );
+                new Image().src = getUrl() + "&t=" + Math.random();
+                // runErrors = syntaxErrors = 0;
             }
         }
     }();
@@ -1895,6 +1910,12 @@ void function( window, factory ){
                     script.onreadystatechange();
             }, 0 );
         };
+
+        window.onbeforeunload = function(){
+            Feedback.send();
+            var now = util.time();
+            while( util.time() - now < 500 );
+        };
     };
 
     var Tracker = function(){
@@ -2000,7 +2021,6 @@ void function( window, factory ){
 
                             pm = new promise;
                             openTag = openTag.replace( srcPropertyRegx, " tracker-src='$1'" );
-                            // TODO: 对于很多没有文件名的，需要优化一下界面显示方案
 
                             util.intelligentGet( url ).then( function( content ){
                                 var code;
@@ -2072,11 +2092,13 @@ void function( window, factory ){
         } );
 
         view.ControlFrame.on( "controllerLoad", function( window, document ){
+            Feedback.setAnalysisEnd();
+
             view.ControlPanel.bindWindow( window );
             view.ControlPanel.addCode( codes = CodeList.list() );
             view.ControlPanel.eventBuilder();
 
-            Feedback.start();
+            // Feedback.start();
 
             if( currentCodeId )
                 view.ControlPanel.showCode( currentCodeId );
