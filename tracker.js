@@ -1,6 +1,6 @@
 /** 
  * Tracker.js
- * @version 1.6.3
+ * @version 1.7.0
  * @author dron
  * @create 2012-12-22
  */
@@ -22,7 +22,7 @@ void function( window, factory ){
     host.TrackerGlobalEvent.fire( "TrackerJSLoad" );
 
 }( this, function( window ){
-    var global, host, location, slice, floor, max, push, version;
+    var global, host, location, slice, floor, max, push, version, pageBaseUrl;
 
     global = window;
     host = global.document;
@@ -31,7 +31,7 @@ void function( window, factory ){
     push = [].push;
     floor = Math.floor;
     max = Math.max;
-    version = "1.6.3";
+    version = "1.7.0";
 
     var getShareLink = function(){
         var url = "http://service.weibo.com/share/share.php";
@@ -135,6 +135,20 @@ void function( window, factory ){
                 else if( typeof unknow === "string" )
                     for( i = 0, l = unknow.length; i < l; i ++ )
                         iterator( unknow.charAt( i ), i, unknow );
+            },
+
+            format: function( source, data ){
+                var rtn = source, blank = {}, item;
+
+                for( var key in data ){
+                    if( !data.hasOwnProperty( key ) )
+                        continue;
+                    item = data[ key ];
+                    item = item.toString().replace( /\$/g, "$$$$" );
+                    rtn = rtn.replace( RegExp( "@{" + key + "}", "g" ), item );    
+                }
+
+                return rtn.toString();
             },
 
             id: function( id ){
@@ -273,16 +287,15 @@ void function( window, factory ){
             excapeRegx: excapeRegx,
 
             fileName: function( url ){
-                // var start, end;
+                var start, end;
 
-                // start = url.lastIndexOf( "/" );
-                // end = max( url.indexOf( "#" ), url.indexOf( "?" ) );
+                start = url.lastIndexOf( "/" );
+                end = max( url.indexOf( "#" ), url.indexOf( "?" ) );
 
-                // if( end == -1 || end == start + 1 )
-                //     end = url.length;
+                if( end == -1 || end == start + 1 )
+                    end = url.length;
 
-                // return url.slice( start + 1, end );
-                return url;
+                return url.slice( start + 1, end );
             },
 
             time: function(){
@@ -412,6 +425,53 @@ void function( window, factory ){
                 }, 16 );
             }
         }
+    }();
+
+    var path = function(){
+        var protocolRegx, absoluteRegx, rootRegx, doubleDotRegx, singleDotRegx;
+
+        protocolRegx = /^\w*:?\/\//;
+        absoluteRegx = /^\//;
+        rootRegx = /^(\w*:?\/?\/?)([\w.]+)(\/)/;
+        doubleDotRegx = /\/[^\/\.]+\/\.\.\//;
+        singleDotRegx = /\/\.\//;
+
+        return {
+            getBase: function( document ){
+                var base, url;
+
+                base = document.querySelector( "base[href]" );
+
+                if( base )
+                    url = base.href;
+                else
+                    url = document.URL;
+
+                return url.slice( 0, url.lastIndexOf( "/" ) + 1 );
+            },
+
+            merge: function( base, url ){
+                if( protocolRegx.test( url ) )
+                    return url;
+                
+                if( absoluteRegx.test( url ) ){
+                    if( rootRegx.test( base ) )
+                        url = RegExp.$1 + RegExp.$2 + url;
+                    else
+                        return url;
+                }else{
+                    url = base + url;
+                }
+
+                while( doubleDotRegx.test( url ) )
+                    url = url.replace( doubleDotRegx, "/" );
+
+                while( singleDotRegx.test( url ) )
+                    url = url.replace( singleDotRegx, "/" );
+
+                return url;
+            }
+        }  
     }();
 
     var promise = function(){
@@ -644,6 +704,7 @@ void function( window, factory ){
             this.arriveRowsCount = 0;
             this.size = content ? util.getByteLength( content ) : -1;
             this.fileName = url ? util.fileName( url ) : "-";
+            this.fullUrl = path.merge( pageBaseUrl, url );
             this.origContent = content || null;
             this.lastModified = util.time();
             this.beautifySize = -1;
@@ -831,21 +892,327 @@ void function( window, factory ){
                         codes.push( r );
                 }
 
-                util.forEach( codes, function( code, index ){
-                    code.index = index;
-                } );
+                // util.forEach( codes, function( code, index ){
+                //     code.index = index;
+                // } );
             },
 
             count: function(){
                 return codes.length;
-            }
-        } );
+            } } );
 
         return single;
     }();
 
     var view = function(){
         return {
+            templates: {
+                url: "<a href='@{url}' target='_blank'>@{url}</a>",
+
+                frameset: [
+                    "<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Frameset//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd'>",
+                    "<html>",
+                    "<head>",
+                        "<meta charset='@{charset}'>",
+                        "<meta name='description' content='ucren-tracker-frame'>",
+                        "<title>@{title}</title>",
+                    "</head>",
+                    "<frameset rows='*,0' framespacing='0' frameborder='no'>",
+                        "<frame src='@{url}' name='tracker_page' />",
+                        "<frame src='about:blank' name='tracker_controller' noresize='yes' />",
+                    "</frameset>",
+                    "</html>"
+                ].join( "" ),
+
+                controllerCSS: [
+                    ".navbar, .table{ margin-bottom: 0; }",
+                    "#top-navbar .navbar-inner{ border-radius: 0; }",
+                    "#code-detail .nav-tabs{ margin-bottom: 0; }",
+                    "#code-detail .nav-tabs li a{ color: #555; }",
+
+                    "::-webkit-scrollbar-thumb{ background: #ddd; min-height: 50px; outline-offset: -2px; outline: 2px solid #fff; }",
+                    "::-webkit-scrollbar-thumb:hover{ background: #666; }",
+                    "::-webkit-scrollbar{ width: 12px; height: 12px; }",
+                    "::-webkit-scrollbar-track-piece{ background: #fafafa; -webkit-border-radius: 0; }",
+
+                    "html, body, table{ font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei'; }",
+                    "html, body{ width: 100%; height: 100%; overflow: hidden; }",
+
+                    // commons
+                    ".scrollable{ overflow: auto; }",
+                    ".ellipsisable{ white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }",
+                    ".relative{ position: relative; }",
+                    ".absolute{ position: absolute; }",
+                    "table.compact-width th{ padding: 8px 5px; }",
+
+                    ".tab-content li{ display: none; width: 100%; height: 100%; }",
+                    ".tab-content li.tab-content-active{ display: block; }",
+
+                    "#top-navbar .close{ padding: 7px 18px 0 0; }",
+                    "#top-navbar .brand{ color: #333; }",
+
+                    ".pages{}",
+                    ".page{ display: none; }",
+
+                    "#page-home{ display: block; }",
+
+                    "#list-codes{ cursor: default; }",
+                    "#list-codes-tbody .none{ color: #999; }",
+                    "#list-codes-tbody .stress{ color: #e5818a; }",
+
+                    "#code-detail{ left: 222px; top: 0; border-left: 1px solid #cacaca; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.065); display: none; }",
+                    "#code-detail .code-toolbar{ height: 42px; background-color: #fafafa; border-bottom: 1px solid #d5d5d5; }",
+                    "#code-detail ul.code-toolbar-inner{ list-style-type: none; height: 100%; margin: 0; padding: 0; }",
+                    "#code-detail .code-toolbar li{ float: left; display: block; }",
+                    "#code-detail .code-toolbar li.right{ float: right; }",
+                    "#code-detail .code-toolbar li.close-button-like{ padding: 8px 12px 0 14px; }",
+                    "#code-detail .code-toolbar li.tab-like{ padding: 5px 0 0 30px; }",
+                    "#code-detail .code-toolbar li.label-like{ line-height: 36px; padding: 4px 10px 0; color: #999; }",
+                    "#code-detail .code-toolbar li.image-like{ padding: 12px 0 0 8px; }",
+                    "#code-detail .code-toolbar .image{ width: 16px; height: 16px; border: 1px solid #ccc; }",
+                    "#code-detail .code-toolbar .arrive{ background-color: #bddbef; }",
+                    "#code-detail .code-toolbar .unarrive{ background-color: #fff; }",
+
+                    "#code-content{ width: 100%; height: 100%; }",
+                    "#code-content pre{ padding: 0; margin: 0; border: 0; font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei'; border-radius: 0; background-color: transparent; white-space: pre; }",
+                    "#code-content .gutter{ position: absolute; left: 0; top: 0; width: 50px; background-color: #fafafa; text-align: right; padding: 5px; z-index: 1; }",
+                    "#code-content .gutter pre{ color: #ccc; }",
+                    "#code-content .lines{ position: absolute; left: 60px; top: 0; padding: 5px; }",
+                    "#code-content .lines .arrive{ background-color: #bddbef; padding: 0 3px; border-radius: 2px; margin-left: -3px; color: #000; }",
+                    "#code-content .timeout-code, #code-content .empty-code{ padding: 10px; color: #ccc; }",
+                    
+                    "#code-info{ padding: 30px; }",
+                    "#code-info .group{ margin: 0 0 10px; }",
+                    "#code-info .group dt{ display: block; float: left; width: 90px; }",
+                    "#code-info .group dd{ display: block; margin-left: 90px; }",
+
+                    "#loading{ position: absolute; left: 0; top: 0; background: rgba(0,0,0,.5); width: 100%; height: 100%; text-align: left; z-index: 100; }",
+                    "#loading span{ color: #fff; font-size: 16px; padding: 14px 0 0 14px; display: inline-block; text-shadow: 0 0 3px #000; }",
+                    "#loading span#waitTime{ padding-left: 10px; }",
+                ].join( "" ),
+
+                controllerPage: [
+                    "<!DOCTYPE html>",
+                    "<html>",
+                    "<head>",
+                        "<meta charset='@{charset}'>",
+                        "<meta name='author' content='dron'>",
+                        "<title>Tracker!</title>",
+                        "<link href='@{resourcePath}/bootstrap/css/bootstrap.min.css' rel='stylesheet' media='screen'>",
+                        "<style>@{css}</style>",
+                    "</head>",
+                    "<body>",
+                        "@{header}",
+
+                        "<div class='main'>",
+                            "<div class='pages'>",
+                                "<div id='page-home' class='page relative'>",
+                                    "@{codeList}",
+                                    "@{codeDetail}",
+                                "</div>",
+                            "</div>",
+                        "</div>",
+
+                        "@{dialogAbout}",
+                        "@{globalLoading}",
+
+                        "<script> window.readyState = 'done'; </script>",
+                    "</body>",
+                    "</html>"
+                ].join( "" ),
+
+                controllerTopbar: [
+                    "<div id='top-navbar' class='navbar'>",
+                        "<div class='navbar-inner'>",
+                            "<button class='close pull-left' action='frame#close'>&times;</button>",
+                            "<a class='brand'>Tracker</a>",
+                            "<ul class='nav pull-left'>",
+                                "<li class='active'><a href='' onclick='return false'>&#20195;&#30721;&#21015;&#34920;</a></li>",
+                                // TODO: more link
+                            "</ul>",
+                            "<ul class='nav pull-right'>",
+                                "<li class='dropdown'>",
+                                    "<a href='#' class='dropdown-toggle' data-toggle='dropdown'>",
+                                        "&#35270;&#22270;",
+                                        "<b class='caret'></b>",
+                                    "</a>",
+                                    "<ul class='dropdown-menu'>",
+                                        "<li><a id='window-mode-trigger' action='frame#toggle' href='#' onclick='return false;'>&#31383;&#21475;&#27169;&#24335;</a></li>",
+                                        "<li><a action='frame#close' href='#' onclick='return false;'>&#20851;&#38381;&#25511;&#21046;&#21488;</a></li>",
+                                    "</ul>",
+                                "</li>",
+                                "<li class='dropdown'>",
+                                    "<a href='#' class='dropdown-toggle' data-toggle='dropdown'>",
+                                        "&#24110;&#21161;",
+                                        "<b class='caret'></b>",
+                                    "</a>",
+                                    "<ul class='dropdown-menu'>",
+                                        "<li><a href='http://ucren.com/tracker/docs/index.html' target='_blank'>&#24110;&#21161;&#20027;&#39064;</a></li>",
+                                        "<li><a href='https://github.com/ChineseDron/Tracker/issues/new' target='_blank'>&#25253;&#38169;</a></li>",
+                                        "<li><a href='@{shareLink}' target='_blank'>&#25512;&#33616;&#32473;&#22909;&#21451;</a></li>",
+                                        "<li><a href='#' action='about#open'>&#20851;&#20110;...</a></li>",
+                                    "</ul>",
+                                "</li>",
+                            "</ul>",
+                        "</div>",
+                    "</div>",
+                ].join( "" ),
+
+                controllerCodeList: [
+                    "<table class='table compact-width'>",
+                        "<thead>",
+                            "<tr>",
+                                "<th width='@{widthIndex}'>&#24207;&#21495;</th>",
+                                "<th width='@{widthName}'>&#21517;&#31216;</th>",
+                                "<th width='@{widthType}'>&#31867;&#22411;</th>",
+                                "<th width='@{widthCover}'>&#25191;&#34892;&#35206;&#30422;&#29575;</th>",
+                                "<th width='@{widthCoverLine}'>&#25191;&#34892;&#34892;&#25968;</th>",
+                                "<th width='@{widthLines}'>&#24635;&#34892;&#25968;</th>",
+                                "<th width='@{widthSize}'>&#21407;&#22987;&#22823;&#23567;</th>",
+                                "<th width='@{widthBSize}'>&#35299;&#21387;&#22823;&#23567;</th>",
+                                "<th width='@{widthRError}'>&#25191;&#34892;&#25253;&#38169;</th>",
+                                "<th width='@{widthSError}'>&#35821;&#27861;&#38169;&#35823;</th>",
+                                "<th width='@{widthState}'>&#29366;&#24577;</th>",
+                                "<th width='*'>&nbsp;</th>",
+                            "</tr>",
+                        "</thead>",
+                    "</table>",
+                    "<div id='list-codes' class='scrollable'>",
+                        "<table class='table table-striped table-hover table-condensed'>",
+                            "<colgroup>",
+                                "<col width='@{widthIndex}'>",
+                                "<col width='@{widthName}'>",
+                                "<col width='@{widthType}'>",
+                                "<col width='@{widthCover}'>",
+                                "<col width='@{widthCoverLine}'>",
+                                "<col width='@{widthLines}'>",
+                                "<col width='@{widthSize}'>",
+                                "<col width='@{widthBSize}'>",
+                                "<col width='@{widthRError}'>",
+                                "<col width='@{widthSError}'>",
+                                "<col width='@{widthState}'>",
+                            "</colgroup>",
+                            "<tbody id='list-codes-tbody'>",
+                            "</tbody>",
+                        "</table>",
+                    "</div>"
+                ].join( "" ),
+
+                controllerCodeDetail: [
+                    "<div id='code-detail' class='absolute'>",
+                        "<div class='code-toolbar clearfix'>",
+                            "<ul class='code-toolbar-inner'>",
+                                "<li class='close-button-like'><button class='close' action='code#close'>&times;</button></li>",
+
+                                "<li class='tab-like'>",
+                                    "<ul id='code-detail-head' class='nav nav-tabs' data-target='code-detail-body'>",
+                                        "<li class='active'><a href='' onclick='return false;'>&#20195;&#30721;</a></li>",
+                                        "<li><a href='' onclick='return false;'>&#20449;&#24687;</a></li>",
+                                    "</ul>",
+                                "</li>",
+                                
+                                "<li class='label-like right tab-desc tab-desc-0'>&#26410;&#25191;&#34892;</li>",
+                                "<li class='image-like right tab-desc tab-desc-0'><div class='unarrive image'></div></li>",
+                                "<li class='label-like right tab-desc tab-desc-0'>&#24050;&#25191;&#34892;</li>",
+                                "<li class='image-like right tab-desc tab-desc-0'><div class='arrive image'></div></li>",
+                                "<li class='label-like right tab-desc tab-desc-0'>&#22270;&#20363;&#65306;</li>",
+                            "</ul>",
+                        "</div>",
+                        "<ul class='unstyled tab-content' id='code-detail-body'>",
+                            "<li class='tab-content-active'>",
+                                "<div id='code-content' class='relative scrollable'></div>",
+                            "</li>",
+                            "<li>",
+                                "<div id='code-info'></div>",
+                            "</li>",
+                        "</ul>",
+                    "</div>"
+                ].join( "" ),
+
+                controllerCodeInfo: [
+                    "<dl class='group'>",
+                        "<dt>&#26469;&#28304;</dt>",
+                        "<dd>@{fileName}</dd>",
+                    "</dl>",
+                    "<dl class='group'>",
+                        "<dt>&#31867;&#22411;</dt>",
+                        "<dd>@{type}</dd>",
+                    "</dl>",
+                    "<dl class='group'>",
+                        "<dt>&#25191;&#34892;&#35206;&#30422;&#29575;</dt>",
+                        "<dd>@{rate}</dd>",
+                    "</dl>",
+                    "<dl class='group'>",
+                        "<dt>&#25191;&#34892;&#34892;&#25968;</dt>",
+                        "<dd>@{arriveRowsCount}</dd>",
+                    "</dl>", 
+                    "<dl class='group'>",
+                        "<dt>&#24635;&#34892;&#25968;</dt>",
+                        "<dd>@{rowsCount}</dd>",
+                    "</dl>",                       
+                    "<dl class='group'>",
+                        "<dt>&#21407;&#22987;&#22823;&#23567;</dt>",
+                        "<dd>@{size}</dd>",
+                    "</dl>",                       
+                    "<dl class='group'>",
+                        "<dt>&#35299;&#21387;&#22823;&#23567;</dt>",
+                        "<dd>@{bsize}</dd>",
+                    "</dl>",                       
+                    "<dl class='group'>",
+                        "<dt>&#25191;&#34892;&#25253;&#38169;</dt>",
+                        "<dd>@{rerror}</dd>",
+                    "</dl>",                       
+                    "<dl class='group'>",
+                        "<dt>&#35821;&#27861;&#38169;&#35823;</dt>",
+                        "<dd>@{serror}</dd>",
+                    "</dl>",                       
+                    "<dl class='group'>",
+                        "<dt>&#29366;&#24577;</dt>",
+                        "<dd>@{state}</dd>",
+                    "</dl>",                       
+                ].join( "" ),
+
+                controllerDialogAbout: [
+                    "<div id='dialog-about' class='modal hide fade in'>",
+                        "<div class='modal-header'>",
+                            "<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>",
+                            "<h3>Tracker</h3>",
+                        "</div>",
+                        "<div class='modal-body'>",
+                            "<p>&#24403;&#21069;&#29256;&#26412;&#65306;@{version}</p>",
+                            "<p>&#25480;&#26435;&#32473;&#65306;@{uid}</p>",
+                        "</div>",
+                        "<div class='modal-footer'>",
+                            "<a href='#' onclick='return false;' class='btn btn-primary'>&#30830;&#23450;</a>",
+                        "</div>",
+                    "</div>",
+                ].join( "" ),
+
+                controllerGlobalLoading: [
+                    "<div id='loading'>",
+                        "<span>&#35831;&#31245;&#31561;&#65292;&#25910;&#38598;&#20013;...</span>",
+                        "<span id='waitTime'></span>",
+                    "</div>"
+                ].join( "" ),
+
+                codeListLine: [
+                    "<tr data-code-id='@{id}'>",
+                        "<td><div class='ellipsisable' style='width: @{widthIndex}px;'>@{index}</div></td>",
+                        "<td><div class='ellipsisable' style='width: @{widthName}px;'>@{fileName}</div></td>",
+                        "<td><div class='ellipsisable' style='width: @{widthType}px;'>@{type}</div></td>",
+                        "<td><div id='code-@{id}-rate' class='ellipsisable' style='width: @{widthCover}px;'>@{rate}</div></td>",
+                        "<td><div id='code-@{id}-arriveRowsCount' class='ellipsisable' style='width: @{widthCoverLine}px;'>@{arriveRowsCount}</div></td>",
+                        "<td><div class='ellipsisable' style='width: @{widthLines}px;'>@{rowsCount}</div></td>",
+                        "<td><div class='ellipsisable' style='width: @{widthSize}px;'>@{size}</div></td>",
+                        "<td><div class='ellipsisable' style='width: @{widthBSize}px;'>@{bsize}</div></td>",
+                        "<td><div id='code-@{id}-runErrors' class='ellipsisable' style='width: @{widthRError}px;'>@{rerror}</div></td>",
+                        "<td><div class='ellipsisable' style='width: @{widthSError}px;'>@{serror}</div></td>",
+                        "<td><div class='ellipsisable' style='width: @{widthState}px;'>@{state}</div></td>",
+                        "<td></td>",
+                    "</tr>"
+                ].join( "" )
+            },
+
             Loading: function(){
                 var layer, span1, span2, animateTimer, count, progress, body;
 
@@ -936,25 +1303,35 @@ void function( window, factory ){
                     windowHeight: 600
                 };
 
-                var template = function( url, title, charset ){
-                    charset = charset || "utf-8";
-                    return [
-                        "<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Frameset//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd'>",
-                        "<html>",
-                        "<head>",
-                            "<meta charset='" + charset + "'>",
-                            "<meta name='description' content='ucren-tracker-frame'>",
-                            "<title>" + title + "</title>",
-                        "</head>",
-                        "<frameset rows='*,0' framespacing='0' frameborder='no'>",
-                            "<frame src='" + url + "' name='tracker_page' />",
-                            "<frame src='about:blank' name='tracker_controller' noresize='yes' />",
-                        "</frameset>",
-                        "</html>"
-                    ].join( "" );
+                var lookupForWindowReady = function( target ){
+                    var pm, timer, timer2, now, timeout, clear;
+                    
+                    pm = new promise;
+                    timeout = 5000;
+                    now = util.time();
+
+                    clear = function(){
+                        clearInterval( timer );
+                        clearTimeout( timer2 );
+                    };
+
+                    timer = setInterval( function(){
+                        if( target.readyState == "done" ){
+                            clear();
+                            pm.resolve();
+                        }
+                    }, 10 );
+
+                    timer2 = setTimeout( function(){
+                        pm.reject();
+                    }, timeout );
+
+                    return pm;
                 };
 
                 return Event.bind( {
+                    state: "preshow",
+
                     pageBuilder: function( fn ){
                         pageBuilder = fn;
                     },
@@ -980,6 +1357,7 @@ void function( window, factory ){
                                 this.createWindow();
                         }
 
+                        this.state = "show";
                         this.fire( "show" );
                     },
 
@@ -994,6 +1372,7 @@ void function( window, factory ){
                         else if( currentMode === "window" )
                             controlWindow.close();
 
+                        this.state = "hide";
                         this.fire( "hide" );
                     },
 
@@ -1007,6 +1386,8 @@ void function( window, factory ){
                             currentMode = "embed",
                             this.createEmbed(),
                             this.show();
+
+                        Feedback.setPanelMode( currentMode );
                     },
 
                     getMode: function(){
@@ -1037,9 +1418,11 @@ void function( window, factory ){
 
                             if( pageHtml ){
                                 window.name = "tracker_main";
-                                this.write( "tracker_main", 
-                                    template( location.href, document.title, 
-                                        document.characterSet ) );
+                                this.write( "tracker_main", util.format( view.templates.frameset, {
+                                    url: location.href,
+                                    title: document.title, 
+                                    charset: document.characterSet || "utf-8"
+                                } ) );
                                 this.write( "tracker_page", pageHtml );
                                 page = this.getWindow( "tracker_page" );
 
@@ -1048,8 +1431,10 @@ void function( window, factory ){
 
                             this.write( "tracker_controller", controllerHtml );
                             controller = this.getWindow( "tracker_controller" );
-                            this.fire( "controllerLoad", controller, 
-                                controller.document );
+
+                            lookupForWindowReady( controller ).then( util.bind( function(){
+                                this.fire( "controllerLoad", controller, controller.document );    
+                            }, this ) );
                         }, this ) );
 
                         hasCreateEmbeded = true;
@@ -1067,8 +1452,10 @@ void function( window, factory ){
                         controllerBuilder( "window" ).then( util.bind( function( html ){
                             this.write( "tracker_controller", html );
                             controller = this.getWindow( "tracker_controller" );
-                            this.fire( "controllerLoad", controller, 
-                                controller.document );
+
+                            lookupForWindowReady( controller ).then( util.bind( function(){
+                                this.fire( "controllerLoad", controller, controller.document );    
+                            }, this ) );
                         }, this ) );
                     },
 
@@ -1136,162 +1523,62 @@ void function( window, factory ){
                     };
                 };
 
-                var pageTemplate = function( mode, charset ){
-                    var resourcePath, toolbarBorderTop;
+                var width = function(){
+                    var mapping, offsets;
 
-                    resourcePath = "http://www.ucren.com/tracker/";
-                    toolbarBorderTop = mode === "window" ? "padding-top: 7px;" :
-                        "border-top: 2px solid #666;";
-                    charset = charset || "utf-8";
-                    
-                    return [
-                        "<!DOCTYPE html>",
-                        "<html>",
-                        "<head>",
-                            "<meta charset='" + charset + "'>",
-                            "<meta name='author' content='dron'>",
-                            "<title>Tracker!</title>",
-                            "<style>",
-                                "body, div, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, code, input, textarea, p, th, td{ margin: 0; padding: 0; }",
-                                "html,body{ overflow: hidden; margin: 0; padding: 0; }",
-                                "body,pre{ font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei'; }",
-                                "li{ list-style: none; }",
-                                ".clearfix:after{ content: '/20'; display: block; height: 0; overflow: hidden; clear: both; }",
-                                ".stress{ color: #f66; }",
-                                ".clearfix{ zoom: 1; }",
-                                "#wrapper{ }",
-                                "#toolbar{ width: auto; height: 20px; padding: 6px; border-bottom: 1px solid #505050; line-height: 20px; background: #e6e6e6; " + toolbarBorderTop + " }",
-                                "#toolbar .logo-bar{ float: right; width: 54px; height: 20px; overflow: hidden; cursor: default; -webkit-transition: width .2s ease; -moz-transition: width .2s ease; -o-transition: width .2s ease; }",
-                                "#toolbar .logo-bar:hover{ width: 100px; }",
-                                "#toolbar .logo{ display: inline-block; width: 54px; height: 20px; background: transparent url(" + resourcePath + "logo.gif) no-repeat 0 center; }",
-                                "#toolbar .version{ display: inline-block; height: 20px; font-size: 12px; font-style: italic; position: relative; top: -10px; }",
-                                "#toolbar .link{ float: right; display: block; font-size: 14px; text-decoration: none; color: #999; margin-right: 18px; line-height: 20px }",
-                                "#toolbar .link:hover{ color: #000; }",
-                                "#toolbar .button{ width: 20px; height: 20px; display: inline-block; border-radius: 2px; cursor: default; margin-right: 7px; }",
-                                "#toolbar .button:hover{ background-color: #d7dde5; border: 1px solid #666; margin: -1px 6px -1px -1px; }",
-                                ".close{ background: transparent url(" + resourcePath + "close.gif) no-repeat center center; }",
-                                ".toggle{ background-image: url(" + resourcePath + "mode.gif); }",
-                                ".toggle-win{ background-position: 0 -20px; }",
-                                "#main{ position: relative; }",
-                                "#resource-panel{  }",
-                                "#resource-panel table{ border-collapse: collapse; height: 30px; min-width: 900px; }",
-                                "#resource-panel table th{ background-color: #e6e6e6; font-size: 14px; font-weight: 400; color: #333; }",
-                                "#resource-list{ background-color: #fff; overflow: auto; cursor: default; }",
-                                "#resource-list table td{ line-height: 30px; font-size: 14px; font-weight: 400; text-indent: 4px; }",
-                                "#resource-list .ellipsis{ white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }",
-                                "#resource-list .none{ padding: 10px; font-size: 14px; color: #666; }",
-                                "#resource-list .index{ width: 38px; }",
-                                "#resource-list .name{ width: 158px; text-indent: 6px; position: relative; }",
-                                "#resource-list .name .hidden-name{ display: none; padding-right: 6px; background: #ffc; position: absolute; left: 0; top: 0; }",
-                                "#resource-list .name:hover{ text-overflow: none; overflow: visible; }",
-                                "#resource-list .name:hover span{ visibility: hidden; }",
-                                "#resource-list .name:hover .hidden-name{ display: block; }",
-                                "#resource-list .type{ width: 68px; }",
-                                "#resource-list .cover{ width: 78px; }",
-                                "#resource-list .cover-line{ width: 68px; }",
-                                "#resource-list .lines{ width: 58px; }",
-                                "#resource-list .size{ width: 88px; }",
-                                "#resource-list .bsize{ width: 88px; }",
-                                "#resource-list .rerror{ width: 68px; }",
-                                "#resource-list .serror{ width: 68px; }",
-                                "#resource-list .state{ width: 48px; }",
-                                "#resource-list .double{ background-color: #eee; }",
-                                "#resource-list .over{ background-color: #d9e5d5; }",
-                                "#resource-list .selected{ background-color: #c1e5b5; }",
-                                "#resource-list .embed{ color: #a8a8a8; font-style: italic; }",
-                                "#code-panel{ position: absolute; left: 222px; top: 0; border-left: 1px solid #3f3f3f; background: #fff; display: none; box-shadow: -1px 1px 3px #3f3f3f; }",
-                                "#code-toolbar{ background-color: #e6e6e6; width: auto; height: 22px; line-height: 22px; padding: 3px 0 3px 5px; border-bottom: 1px solid #b3b3b3; }",
-                                "#code-toolbar .button{ width: 20px; height: 20px; float: left; border-radius: 2px; cursor: default; }",
-                                "#code-toolbar .button:hover{ background-color: #d7dde5; border: 1px solid #666; margin: -1px; }",
-                                "#code-toolbar .label{ font-size: 14px; color: #333; float: left; height: 20px; }",
-                                "#code-toolbar .arrive{ background-color: #c1e5b5; width: 14px; height: 14px; margin: 2px; border: 1px solid #b3b3b3; }",
-                                "#code-toolbar .unarrive{ background-color: transparent; }",
-                                "#code{ overflow: scroll; }",
-                                "#code .timeout-code, #code .empty-code{ padding: 10px; font-size: 14px; }",
-                                ".block{ position: relative; background-color: #fff; }",
-                                ".block pre{ display: block; line-height: 20px; font-size: 13px; margin: 0; padding: 0; }",
-                                ".block pre .arrive{ background-color: #c1e5b5; padding: 0 3px; border-radius: 2px; margin-left: -3px; color: #000; }",
-                                ".block .gutter{ position: absolute; left: 0; top: 0; width: 30px; background-color: #f7f7f7; color: #808080; padding: 5px; text-align: right; }",
-                                ".block .lines{ position: absolute; left: 40px; top: 0; padding: 5px; color: #333; }",
-                                "#loading{ position: absolute; left: 0; top: 0; background: #000; opacity: .5; width: 100%; height: 100%; text-align: left; }",
-                                "#loading span{ line-height: 35px; color: #fff; font-size: 14px; font-weight: 700; padding-left: 70px; }",
-                                "#loading span#waitTime{ padding-left: 10px; }",
-                            "</style>",
-                        "</head>",
-                        "<body>",
-                            "<div id='wrapper'>",
-                                "<div id='toolbar'>",
-                                    "<div class='logo-bar'><a class='logo' target='_blank'></a><a class='version'>" + version + "</a></div>",
-                                    "<a class='link' href='" + getShareLink() + "' target='_blank'>&#25512;&#33616;&#32473;&#22909;&#21451;</a>", 
-                                    "<a class='link' href='https://github.com/ChineseDron/Tracker/issues/new' target='_blank'>&#25253;&#38169;</a>",
-                                    "<a class='link' href='http://ucren.com/tracker/docs/index.html' target='_blank'>&#24110;&#21161;</a>",
-                                    "<a class='button close' action='close'></a>",
-                                    "<a class='button toggle' id='toggle-btn' action='toggleMode'></a>",
-                                "</div>",
-                                "<div id='main' class='clearfix'>",
-                                    "<div id='resource-panel'>",
-                                        "<table cellspacing='0' cellpadding='0' border='1' borderColor='#b3b3b3' width='100%'>",
-                                            "<tr>",
-                                                "<th width='40'>&#24207;&#21495;</th>",
-                                                "<th width='160'>&#21517;&#31216;</th>",
-                                                "<th width='70'>&#31867;&#22411;</th>",
-                                                "<th width='80'>&#25191;&#34892;&#35206;&#30422;&#29575;</th>",
-                                                "<th width='70'>&#25191;&#34892;&#34892;&#25968;</th>",
-                                                "<th width='60'>&#24635;&#34892;&#25968;</th>",
-                                                "<th width='90'>&#21407;&#22987;&#22823;&#23567;</th>",
-                                                "<th width='90'>&#35299;&#21387;&#22823;&#23567;</th>",
-                                                "<th width='70'>&#25191;&#34892;&#25253;&#38169;</th>",
-                                                "<th width='70'>&#35821;&#27861;&#38169;&#35823;</th>",
-                                                "<th width='50'>&#29366;&#24577;</th>",
-                                                "<th width='*'>&nbsp;</th>",
-                                            "</tr>",
-                                        "</table>",
-                                        "<div id='resource-list'></div>",
-                                    "</div>",
-                                    "<div id='code-panel'>",
-                                        "<div id='code-toolbar'>",
-                                            "<a class='button close' id='close-code'></a>",
-                                            "<span class='label' style='margin-left: 24px;'>&#22270;&#31034;:</span>",
-                                            "<span class='label arrive' style='margin-left: 20px;'>&#12288;</span>",
-                                            "<span class='label' style='margin-left: 5px;'>&#24050;&#25191;&#34892;</span>",
-                                            "<span class='label arrive unarrive' style='margin-left: 15px;'>&#12288;</span>",
-                                            "<span class='label' style='margin-left: 5px;'>&#26410;&#25191;&#34892;</span>",
-                                        "</div>",
-                                        "<div id='code'></div>",
-                                    "</div>",
-                                "</div>",
-                            "</div>",
-                            "<div id='loading'>",
-                                "<span>&#35831;&#31245;&#31561;&#65292;&#25910;&#38598;&#20013;...</span>",
-                                "<span id='waitTime'></span>",
-                            "</div>",
-                        "</body>",
-                        "</html>"
-                    ].join( "" );
+                    mapping = {
+                        index: 40, name: 160, type: 70, cover: 80, "cover-line": 70, lines: 60, 
+                        size: 90, bsize: 90, rerror: 70, serror: 70, state: 50
+                    };
+
+                    offsets = {
+                    };
+
+                    return function( name, type ){
+                        return mapping[ name ] + ( offsets[ type ] || 0 );
+                    };
+                }();
+
+                var withWidths = function( data ){
+                    var widths = {
+                        widthIndex: width( "index" ),
+                        widthName: width( "name" ),
+                        widthType: width( "type" ),
+                        widthCover: width( "cover" ),
+                        widthCoverLine: width( "cover-line" ),
+                        widthLines: width( "lines" ),
+                        widthSize: width( "size" ),
+                        widthBSize: width( "bsize" ),
+                        widthRError: width( "rerror" ),
+                        widthSError: width( "serror" ),
+                        widthState: width( "state" )
+                    };
+
+                    if( !data )
+                        return widths;
+
+                    for( var i in widths )
+                        data[ i ] = widths[ i ];
+
+                    return data;
                 };
 
-                var codeTemplate = function( code, index ){
-                    var trClassName, fileNameClass;
-                    
-                    trClassName = index % 2 ? "double" : "";
-                    fileNameClass = code.fileName == "embed" ? "embed" : "";
+                var codeTemplate = function( code ){
+                    return util.format( view.templates.codeListLine, withWidths( {
+                        id: code.id,
 
-                    return [
-                        "<tr class='" + trClassName + "' data-code-id='" + code.id + "'>",
-                            "<td width='40' height='24'><div class='ellipsis index'>" + ( code.index + 1 ) + "</div></td>",
-                            "<td width='160' valign='top'><div class='ellipsis name " + fileNameClass + "'><span>" + code.fileName + "</span><div class='hidden-name'>" + code.fileName + "</div></div></td>",
-                            "<td width='70'><div class='ellipsis type'>" + type( code ) + "</div></td>",
-                            "<td width='80'><div id='code-" + code.id + "-rate' class='ellipsis cover'>" + rate( code ) + "</div></td>",
-                            "<td width='70'><div id='code-" + code.id + "-arriveRowsCount' class='ellipsis cover-line'>" + code.arriveRowsCount + "</div></td>",
-                            "<td width='60'><div class='ellipsis lines'>" + code.rowsCount + "</div></td>",
-                            "<td width='90'><div class='ellipsis size'>" + size( code.size ) + "</div></td>",
-                            "<td width='90'><div class='ellipsis bsize'>" + size( code.beautifySize ) + "</div></td>",
-                            "<td width='70'><div id='code-" + code.id + "-runErrors' class='ellipsis rerror'>" + yesno( code.runErrors ) + "</div></td>",
-                            "<td width='70'><div class='ellipsis serror'>" + yesno( code.syntaxErrors ) + "</div></td>",
-                            "<td width='50'><div class='ellipsis state'>" + state( code.state ) + "</div></td>",
-                            "<td width='*'></td>",
-                        "</tr>"
-                    ].join( "" );
+                        index: ++ codeIndex,
+                        fileName: code.fileName,
+                        type: type( code ),
+                        rate: rate( code ),
+                        arriveRowsCount: code.arriveRowsCount,
+                        rowsCount: code.rowsCount,
+                        size: size( code.size ),
+                        bsize: size( code.beautifySize ),
+                        rerror: yesno( code.runErrors ),
+                        serror: yesno( code.syntaxErrors ),
+                        state: state( code.state )
+                    } ) );
                 };
 
                 var codeListTemplate = function( codeList ){
@@ -1301,27 +1588,23 @@ void function( window, factory ){
                     
                     if( codeList.length ){
                         util.forEach( codeList, function( code, index ){
-                            htmls[ index ] = codeTemplate( code, index );
+                            htmls[ index ] = codeTemplate( code );
                         } );
 
-                        return [
-                            "<table cellspacing='0' cellpadding='0' border='1' borderColor='#b3b3b3' width='100%'>",
-                                htmls.join( "" ),
-                            "</table>"
-                        ].join( "" );   
+                        return htmls.join( "" );
                     }else{
-                        return "<div class='none'>&#35813;&#32593;&#39029;&#27809;&#26377;&#20219;&#20309;&#32;&#74;&#83;&#32;&#20195;&#30721;&#12290;</div>";
+                        return "<tr><td colspan='20'><div class='none'>&#35813;&#32593;&#39029;&#27809;&#26377;&#20219;&#20309;&#32;&#74;&#83;&#32;&#20195;&#30721;&#12290;</div></td></tr>";
                     }
                 };
 
                 var makeCodeTr = function( code ){
                     var layer, html;
                     
-                    layer = document.createElement( "div" );
-                    html = codeListTemplate( [ code ] );
+                    layer = document.createElement( "tbody" );
+                    html = codeTemplate( code );
                     layer.innerHTML = html;
 
-                    return layer.getElementsByTagName( "tr" )[ 0 ];
+                    return layer.firstChild;
                 };
 
                 var asnyShowCode = function(){
@@ -1397,10 +1680,10 @@ void function( window, factory ){
                         init();
 
                         if( code.state == "empty" ){
-                            codeEl.innerHTML = "<div class='empty-code stress'>" +
+                            codeEl.innerHTML = "<div class='empty-code'>" +
                                     "&#20869;&#23481;&#20026;&#31354;</div>"; // 内容为空
                         }else if( code.state == "timeout" ){
-                            codeEl.innerHTML = "<div class='timeout-code stress'>" +
+                            codeEl.innerHTML = "<div class='timeout-code'>" +
                                     "&#35299;&#26512;&#36229;&#26102;</div>"; // 解析超时
                         }else{
                             currentDisposeLines = code.linesViewHtml;
@@ -1415,62 +1698,202 @@ void function( window, factory ){
                     return result;
                 }();
 
-                var codeEl;
+                var setupBootstrapPatch = function(){
+                    var setupDropdownMenu = function(){
+                        var lastOpen;
+
+                        var setup = function( el ){
+
+                            var dropdownMenu = el.querySelector( ".dropdown-menu" );
+
+                            Event.add( dropdownMenu, "click", function( e ){
+                                util.removeClass( el, "open" );
+                                lastOpen = null;
+                                e.stopPropagation();
+                            } );
+
+                            Event.add( el, "click", function( e ){
+                                util.addClass( el, "open" );
+                                if( lastOpen && lastOpen != el )
+                                    util.removeClass( lastOpen, "open" );
+                                lastOpen = el;
+                                e.stopPropagation();
+                            } );
+                        };
+
+                        return function(){
+                            var dropdowns = document.querySelectorAll( ".dropdown" );
+                            for( var i = 0, l = dropdowns.length; i < l; i ++ )
+                                setup( dropdowns[ i ] );
+                            Event.add( document, "click", function(){
+                                for( var i = 0, l = dropdowns.length; i < l; i ++ )
+                                    util.removeClass( dropdowns[ i ], "open" );
+                            } );
+                        }
+                    }();
+
+                    var setupModalDialog = function(){
+
+                        var close = function( modal ){
+                            return function(){
+                                modal.style.display = "none";
+                            }
+                        };
+
+                        var setup = function( modal ){
+                            var closeBtns = modal.querySelectorAll( ".modal-header .close, .modal-footer .btn" );
+                            var fclose = close( modal );
+                            for( var i = 0, l = closeBtns.length; i < l; i ++ )
+                                Event.add( closeBtns[ i ], "click", fclose );
+                        };
+
+                        return function(){
+                            var modals = document.querySelectorAll( ".modal" );
+                            for( var i = 0, l = modals.length; i < l; i ++ )
+                                setup( modals[ i ] );
+                        } 
+                    }();
+
+                    var setupTab = function(){
+
+                        var setup = function( tab ){
+                            var target = tab.getAttribute( "data-target" );
+
+                            if( !target )
+                                return ;
+
+                            target = document.getElementById( target );
+
+                            var heads = tab.childNodes;
+                            var bodys = target.childNodes;
+
+                            tab.active = function( index ){
+                                util.removeClass( heads[ tab.actived ], "active" );
+                                util.removeClass( bodys[ tab.actived ], "tab-content-active" );
+
+                                util.addClass( heads[ index ], "active" );
+                                util.addClass( bodys[ index ], "tab-content-active" );
+
+                                tab.actived = index;
+                                tab.tabEvent.fire( "active", index );
+                            };
+
+                            util.forEach( heads, function( head, index ){
+                                Event.add( head, "click", function(){
+                                    if( tab.actived == index )
+                                        return ;
+                                    tab.active( index );
+                                } );
+                            } );
+
+                            tab.tabEvent = Event.bind({});
+                            tab.actived = 0;
+                        };
+
+                        return function(){
+                            var tabs = document.querySelectorAll( ".nav" );
+                            for( var i = tabs.length - 1; i >= 0; i -- )
+                                setup( tabs[ i ] );
+                        };
+                    }();
+
+                    return function(){
+                        setupDropdownMenu();  
+                        setupModalDialog();
+                        setupTab();
+                    };
+                }();
+
+                var codeEl, codeIndex = 0;
 
                 return Event.bind( {
                     bindWindow: function( win ){
                         window = win;
                         document = window.document;
-                        codeEl = document.getElementById( "code" );
+                        codeEl = document.getElementById( "code-content" );
                     },
 
                     addCode: function( code ){
-                        var resourceList, tbody, tr, index;
-                        
-                        // MARKS
-                        resourceList = document.getElementById( "resource-list" );
+                        var tbody, tr, index;
+
+                        if( !document )
+                            return ;
+
+                        tbody = document.getElementById( "list-codes-tbody" );
                         index = CodeList.count() - 1;
 
                         if( code instanceof Array ){
-                            resourceList.innerHTML = codeListTemplate( code );
+                            tbody.innerHTML = codeListTemplate( code );
                         }else if( code instanceof Code ){
                             code.onReady( function(){
-                                code.index = index;
-                                tbody = resourceList.getElementsByTagName( "table" )[ 0 ]
-                                    .getElementsByTagName( "tbody" )[ 0 ];
+                                // code.index = index;
                                 tr = makeCodeTr( code );
-                                tr.className = index % 2 ? "double" : "";
-                                tbody.appendChild( tr );                                
+                                tbody.appendChild( tr );
                             } );
                         }
                     },
 
-                    showCode: function( id ){
-                        var codePanel, resourceList, trs, code, idArray, el;
+                    showCodeDetail: function( id ){
+                        var codeDetailHeadTab, actived;
 
-                        codePanel = document.getElementById( "code-panel" );
-                        resourceList = document.getElementById( "resource-list" );
+                        codeDetailHeadTab = document.getElementById( "code-detail-head" );
+                        actived = codeDetailHeadTab.actived;
+
                         currentSelectedCode = id || null;
-                        codePanel.style.display = id ? "block" : "none";
 
+                        document.getElementById( "code-detail" ).style.display = 
+                            id ? "block" : "none";
+
+                        if( actived === 0 ){
+                            this.showCode( id );
+                        }else if( actived == 1 ){
+                            this.showCodeInfo( id );
+                        }
+
+                        var elementListCodes = document.getElementById( "list-codes" );
+                        var trs = elementListCodes.querySelectorAll( "tr" );
+
+                        util.forEach( trs, function( tr ){
+                            if( tr.getAttribute( "data-code-id" ) == id )
+                                util.addClass( tr, "info" );
+                            else
+                                util.removeClass( tr, "info" );
+                        } );
+                    },
+
+                    showCode: function( id ){
                         if( id ){
                             code = CodeList.get( id );
                             asnyShowCode( code );
                         }
+                    },
 
-                        trs = resourceList.getElementsByTagName( "tr" );
-                        
-                        util.forEach( trs, function( tr ){
-                            if( tr.getAttribute( "data-code-id" ) == id )
-                                util.addClass( tr, "selected" );
-                            else
-                                util.removeClass( tr, "selected" );
+                    showCodeInfo: function( id ){
+                        var elementCodeInfo, code;
+
+                        elementCodeInfo = document.getElementById( "code-info" );
+                        code = CodeList.get( id );
+
+                        elementCodeInfo.innerHTML = util.format( view.templates.controllerCodeInfo, {
+                            // id: code.id,
+                            // index: ++ codeIndex,
+                            fileName: code.fileName == "-" ? "&#26469;&#33258;&#39029;&#38754;" : 
+                                util.format( view.templates.url, { url: code.fullUrl } ),
+                            type: type( code ),
+                            rate: rate( code ),
+                            arriveRowsCount: code.arriveRowsCount,
+                            rowsCount: code.rowsCount,
+                            size: size( code.size ),
+                            bsize: size( code.beautifySize ),
+                            rerror: yesno( code.runErrors ),
+                            serror: yesno( code.syntaxErrors ),
+                            state: state( code.state )
                         } );
                     },
 
                     updateCode: function( code ){
-                        // if( currentSelectedCode == code.id )
-                        //     this.showCode( code.id );
+                        if( currentSelectedCode == code.id )
+                            this.showCodeDetail( code.id );
 
                         var rateEl, arriveRowsCountEl, runErrorsEl;
 
@@ -1488,76 +1911,105 @@ void function( window, factory ){
                     },
 
                     actions: function( acts ){
-                        actions = acts;
+                        for( var name in acts )
+                            actions[ name ] = acts[ name ];
                     },
 
-                    htmlBuilder: function( mode ){
+                    htmlBuilder: function(){
                         var pm = new promise;
+                        codeIndex = 0;
+
                         util.delay( function(){
-                            pm.resolve( pageTemplate( mode, global.document.characterSet ) );
+                            pm.resolve( util.format( view.templates.controllerPage, withWidths( {
+                                charset: global.document.characterSet || "utf-8",
+                                resourcePath: "http://www.ucren.com/tracker/",
+                                shareLink: getShareLink,
+
+                                css: view.templates.controllerCSS,
+                                header: view.templates.controllerTopbar,
+
+                                codeList: util.format( view.templates.controllerCodeList, withWidths() ),
+                                codeDetail: view.templates.controllerCodeDetail,
+
+                                dialogAbout: view.templates.controllerDialogAbout,
+                                globalLoading: view.templates.controllerGlobalLoading,
+
+                                version: version,
+                                uid: host.tracker_uid
+                            } ) ) );
                         } );
                         return pm;
                     },
 
                     eventBuilder: function(){
                         var me = this;
-                        var resourceList = document.getElementById( "resource-list" );
-                        var codePanel = document.getElementById( "code-panel" );
-                        var code = document.getElementById( "code" );
-                        var closeCode = document.getElementById( "close-code" );
-                        var toggleBtn = document.getElementById( "toggle-btn" );
-                        var de = document.documentElement;
-                        var toolbarHeight = 36, toolbarHeight2 = 24;
+                        
+                        var viewCodeLeftPadding = 222;
+                        var topNavbarHeight = 42;
+                        var codeListHeadHeight = 36;
+                        var codeDetailToolbarHeight = 42;
+
+                        var elementListCodes = document.getElementById( "list-codes" );
+                        var elementCodeDetail = document.getElementById( "code-detail" );
+                        var elementCodeToolbarInner = document.querySelector( ".code-toolbar-inner" );
+                        var elementCodeDetailHead = document.getElementById( "code-detail-head" );
+                        var elementCodeDetailBody = document.getElementById( "code-detail-body" );
+                        var elementCodeContent = document.getElementById( "code-content" );
+                        // var elementCodeInfo = document.getElementById( "code-info" );
+
                         var tr, focusInList;
+                        var tabDescRegx = /tab-desc-(\d+)/;
 
                         var resize = function(){
-                            var width, height;
-                            width = de.clientWidth;
-                            height = de.clientHeight;
-                            code.style.width = width - 220 + "px";
-                            code.style.height = 
-                            resourceList.style.height = height - toolbarHeight -
-                                toolbarHeight2 + "px";
-                        };
+                            var width, height, pageHeight;
 
-                        // FIXME: code 容器两指向左向右划动，导致翻前一页
+                            width = document.body.clientWidth;
+                            height = document.body.clientHeight;
+                            pageHeight = height - topNavbarHeight;
+                            
+                            elementListCodes.style.width = width + "px";
+                            elementListCodes.style.height = pageHeight - codeListHeadHeight + "px";
+
+                            elementCodeDetail.style.width = width - viewCodeLeftPadding + "px";
+                            elementCodeDetail.style.height = pageHeight + "px";
+
+                            elementCodeDetailBody.style.width = width - viewCodeLeftPadding + "px";
+                            elementCodeDetailBody.style.height = pageHeight - 
+                                codeDetailToolbarHeight + "px";
+                        };
 
                         resize();
                         Event.add( window, "resize", resize );
 
-                        Event.add( resourceList, {
-                            mouseover: function( e ){
-                                if( tr = util.findParent( e.target, "tr", resourceList ) )
-                                    util.addClass( tr, "over" );
-                            },
-                            mouseout: function( e ){
-                                if( tr = util.findParent( e.target, "tr", resourceList ) )
-                                    util.removeClass( tr, "over" );
-                            },
+                        Event.add( elementListCodes, {
                             click: function( e ){
                                 var codeId;
-                                if( tr = util.findParent( e.target, "tr", resourceList ) )
+                                if( tr = util.findParent( e.target, "tr", elementListCodes ) )
                                     if( codeId = tr.getAttribute( "data-code-id" ) )
                                         focusInList = true,
-                                        view.ControlPanel.showCode( codeId );
+                                        codeId == currentSelectedCode ||
+                                            view.ControlPanel.showCodeDetail( codeId );
                             }
                         } );
 
-                        Event.add( codePanel, {
+                        Event.add( elementCodeDetail, {
                             click: function(){
                                 focusInList = false;
                             }
                         } );
 
                         Event.add( document, {
-                            click: function( e ){
+                            mouseup: function( e ){
                                 var action;
                                 if( ( action = e.target.getAttribute( "action" ) ) &&
                                     actions[ action ] )
                                     actions[ action ].call( me, e.target );
                             },
+
                             keydown: function( e ){
                                 // command + R, F5
+                                var selectId;
+
                                 if( ( e.metaKey && e.keyCode == 82 ) || e.keyCode == 116 ) 
                                     e.preventDefault && e.preventDefault();
                                 if( focusInList && currentSelectedCode ){
@@ -1568,7 +2020,7 @@ void function( window, factory ){
                                         offset = 1;
                                     }
                                     if( offset ){
-                                        var trs = resourceList.getElementsByTagName( "tr" ),
+                                        var trs = elementListCodes.querySelectorAll( "tr" ),
                                             nowIndex = -1, tr;
                                         
                                         for(var i = 0, l = trs.length; i < l; i ++){
@@ -1579,30 +2031,69 @@ void function( window, factory ){
                                             }
                                         }
 
-                                        if( ~nowIndex ){
+                                        if( nowIndex > -1 ){
                                             nowIndex = ( nowIndex += offset ) < 0 ?
                                                 0 : nowIndex == trs.length ? 
                                                 nowIndex - 1 : nowIndex;
                                             tr = trs[ nowIndex ];
-                                            view.ControlPanel.showCode( 
-                                                tr.getAttribute( "data-code-id" ) );
+
+                                            selectId = tr.getAttribute( "data-code-id" );
+                                            if( currentSelectedCode != selectId )
+                                                view.ControlPanel.showCodeDetail( selectId );
+
                                             e.preventDefault && e.preventDefault();
                                         }
                                     }
                                 }
-                            }
+                            },
+
+                            // mousewheel: function( e ){
+                            //     e.preventDefault && e.preventDefault();
+                            // }
                         } );
 
-                        Event.add( closeCode, "click", function( e ){
-                            focusInList = true;
-                            view.ControlPanel.showCode( false );
-                        } );
+                        if( !actions[ "code#close" ] )
+                            actions[ "code#close" ] = function( e ){
+                                focusInList = true;
+                                view.ControlPanel.showCodeDetail( false );
+                            };
+
+                        if( !actions[ "about#open" ] )
+                            actions[ "about#open" ] = function(){
+                                document.getElementById( "dialog-about" ).style.display = "block";  
+                            };
 
                         if( view.ControlFrame.getMode() == "window" )
-                            util.addClass( toggleBtn, "toggle-win" );
+                            document.getElementById( "window-mode-trigger" ).innerHTML =
+                                "&#24182;&#21015;&#27169;&#24335;";
+
+                        var lastScrollLeft = 0;
+                        Event.add( elementCodeContent, "scroll", function(){
+                            if( lastScrollLeft == this.scrollLeft )
+                                return ;
+                            
+                            var gutter = this.querySelector( ".gutter" );
+                            gutter.style.left = this.scrollLeft + "px";
+                            lastScrollLeft = this.scrollLeft;
+                        } );
+
+                        setupBootstrapPatch();
+
+                        elementCodeDetailHead.tabEvent.on( "active", function( index ){
+                            if( index == 1 && this.currentShown != currentSelectedCode ){
+                                this.currentShown = currentSelectedCode;
+                                view.ControlPanel.showCodeInfo( currentSelectedCode );
+                            }
+
+                            var tabDescs = elementCodeToolbarInner.querySelectorAll( ".tab-desc" );
+                            util.forEach( tabDescs, function( tabDesc ){
+                                tabDescRegx.test( tabDesc.className );
+                                tabDesc.style.display = RegExp.$1 == index ? "" : "none";
+                            } );
+                        } );
 
                         if( currentSelectedCode )
-                            this.showCode( currentSelectedCode );
+                            this.showCodeDetail( currentSelectedCode );
                     }
                 } );
             }()
@@ -1611,8 +2102,8 @@ void function( window, factory ){
 
     var Feedback = function(){
         var urlBase, messageBase, url, runErrors, syntaxErrors, timer, timeout, getUrl, me, tt, uid,
-            controllerState, autoStartTimer, autoStartTimeout, started, codeCount, sended, startTime,
-            analysisTime;
+            autoStartTimer, autoStartTimeout, started, codeCount, sended, startTime,
+            analysisTime, panelMode;
 
         urlBase = "http://www.ucren.com/feedback/trace.php?content=";
         messageBase = "Tracker: ";
@@ -1624,9 +2115,9 @@ void function( window, factory ){
         uid = host.tracker_uid || "guest";
         timeout = 2e3;
         autoStartTimeout = 1e4;
-        controllerState = "preshow";
         startTime = util.time();
         analysisTime = 0;
+        panelMode = "embed";
 
         getUrl = function(){
             var errors, message;
@@ -1638,7 +2129,7 @@ void function( window, factory ){
                 "[ User ]", tt, uid,
                 "[ Codes ]", codeCount,
                 "[ Errors ]", errors.join( " " ),
-                "[ Controller ]", controllerState,
+                "[ Controller ]", view.ControlFrame.state, panelMode,
                 "[ AnalysisTime ]", analysisTime,
                 "[ Stay ]", ( ( util.time() - startTime ) / 1000 ).toFixed( 1 ) + "s",
                 "[ Url ]", url ].join( " " ) );
@@ -1671,8 +2162,8 @@ void function( window, factory ){
                 // }
             },
 
-            setControllerState: function( state ){
-                controllerState = state;
+            setPanelMode: function( mode ){
+                panelMode = mode;
             },
 
             setAnalysisEnd: function(){
@@ -1817,8 +2308,7 @@ void function( window, factory ){
                         index = util.handle( node );
                         
                         node.appendChild(
-                            document.createTextNode( 
-                                "__trackerScriptStart__(" + index + ");" + 
+                            document.createTextNode( "__trackerScriptStart__(" + index + ");" + 
                                 code.executiveCode + ";"  ) );
 
                         fn.apply( me, args );
@@ -1946,6 +2436,8 @@ void function( window, factory ){
 
         return { cmd: cmd, page: page };
     }();
+
+    pageBaseUrl = path.getBase( host );
 
     // business logic
     void function(){
@@ -2101,11 +2593,9 @@ void function( window, factory ){
             // Feedback.start();
 
             if( currentCodeId )
-                view.ControlPanel.showCode( currentCodeId );
+                view.ControlPanel.showCodeDetail( currentCodeId );
 
             controllerOnLoad.fire();
-
-            Feedback.setControllerState( "showed" );
 
             updateInterval = setInterval( checkCodes, 3e3 );
 
@@ -2123,8 +2613,8 @@ void function( window, factory ){
         } );
 
         view.ControlPanel.actions( {
-            close: util.bind( view.ControlFrame.hide, view.ControlFrame ),
-            toggleMode: util.bind( view.ControlFrame.toggleMode, view.ControlFrame )
+            "frame#close": util.bind( view.ControlFrame.hide, view.ControlFrame ),
+            "frame#toggle": util.bind( view.ControlFrame.toggleMode, view.ControlFrame )
         } );
 
         host.TrackerGlobalEvent.on( "TrackerJSLoad", function(){

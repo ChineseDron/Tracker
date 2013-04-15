@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="author" content="dron">
         <link href="http://ucren.com/favicon.ico" rel="shortcut icon">
-        <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <link href="../bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
         <link href="css/docs.css" rel="stylesheet" media="screen">
     </head>
     <body data-spy="scroll" data-target=".sidebar">
@@ -38,7 +38,7 @@
                         <div class="screenful">
                             <h2 id="overview">1 概述</h2>
                             <p>Tracker 是一个浏览器书签栏工具，她将被运行于其他网页之后，为了协助您了解目标网页中 JavaScript 的运行情况，包括：执行覆盖率、执行行数、是否存在执行或语法错误等信息，当你对一个目标网页使用 Tracker，他们将被呈现在像下面截图所示的一个表格当中在目标网页下边。</p>
-                            <p class="screenshot"><img src="img/screenshot.png"></p>
+                            <p class="screenshot"><img src="img/screenshot.png" class="img-rounded img-polaroid"></p>
                             <p class="text-center"><a href="#quickstart" class="btn btn-primary btn-large">不用安装，快速开始</a></p>
                         </div>
                         
@@ -142,8 +142,8 @@
                             </p>
 
                             <h3>4.2 代码面板</h3>
-                            <p>当您点击表格中某一行，此时在表格右侧出现一个代码框，用于显示当前 JS 资源解压后的代码，执行经过的语句或表达式用绿底黑字表示，没有经过的代码为白底。</p>
-                            <p><img src="img/screenshot-code.png" class="img-rounded img-polaroid"></p>
+                            <p>当您点击表格中某一行，此时在表格右侧出现一个代码框，用于显示当前 JS 资源解压后的代码，执行经过的语句或表达式用蓝底黑字表示，没有经过的代码为白底。</p>
+                            <p class="text-center"><img src="img/screenshot-code.png" class="img-rounded img-polaroid"></p>
                         </div>
 
                         <div class="screenful">
@@ -178,6 +178,14 @@
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        <tr>
+                                            <td>1.7.0</td>
+                                            <td>采用 bootstrap 构建的全新的 UI；增加代码详情页的“信息”面板</td>
+                                        </tr>
+                                        <tr>
+                                            <td>1.6.4</td>
+                                            <td>Feedback 字段增加</td>
+                                        </tr>
                                         <tr>
                                             <td>1.6.3</td>
                                             <td>UI 细微调整</td>
@@ -311,8 +319,8 @@
             </div>
         </footer>
 
-        <script src="js/jquery.min.js"></script>
-        <script src="js/bootstrap.min.js"></script>
+        <script src="../bootstrap/js/jquery.min.js"></script>
+        <script src="../bootstrap/js/bootstrap.min.js"></script>
         <script src="js/docs.js"></script>
     </body>
 </html>

@@ -1,4 +1,4 @@
-html, body{
+html, body, table{
     font-family: "Courier New", "Heiti SC", "Microsoft Yahei";
 }
 
@@ -77,7 +77,7 @@ header .container{
 
 .nav li.active .icon-chevron-right,
 .nav li.active a:hover .icon-chevron-right {
-    background-image: url(../img/glyphicons-halflings-white.png);
+    background-image: url(../../bootstrap/img/glyphicons-halflings-white.png);
     opacity: 1;
 }
 
@@ -128,7 +128,7 @@ header .container{
 }
 
 #main .container span.screenshot-fl{
-    /* 图片制作参数：描边 2px #2575bd，背景亮度 -10%，背景高斯模糊 1.5px，大小 350*100 */
+    /* 图片制作参数：描边 2px #2575bd，背景亮度 -5%，背景高斯模糊 1.5px，大小 350*100 */
     display: block;
     width: 21.875em;
     height: 6.25em;
