@@ -37,7 +37,7 @@
                     <div class="span9">
                         <div class="screenful">
                             <h2 id="overview">1 概述</h2>
-                            <p>Tracker 是一个浏览器书签栏工具，她将被运行于其他网页之后，为了协助您了解目标网页中 JavaScript 的运行情况，包括：执行覆盖率、执行行数、是否存在执行或语法错误等信息，当你对一个目标网页使用 Tracker，他们将被呈现在像下面截图所示的一个表格当中在目标网页下边。</p>
+                            <p>Tracker 是一个运行于浏览器书签栏的 JavaScript 嗅探工具，她将被启动于其他网页之后，为了协助您了解目标网页中 JavaScript 的运行情况，包括：执行覆盖率、执行行数、是否存在执行或语法错误等信息，当你对一个目标网页使用 Tracker，他们将被呈现在像下面截图所示的一个表格当中在目标网页下边。</p>
                             <p class="screenshot"><img src="img/screenshot.png" class="img-rounded img-polaroid"></p>
                             <p class="text-center"><a href="#quickstart" class="btn btn-primary btn-large">不用安装，快速开始</a></p>
                         </div>
@@ -170,6 +170,7 @@
                             </div>
 
                             <div id="changelog-content">
+                                <!-- // TODO: 这段考虑分离到其它文本文件中，异步加载 -->
                                 <table class="table table-bordered table-hover">
                                     <thead>
                                         <tr>
@@ -178,6 +179,22 @@
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        <tr>
+                                            <td>1.7.4</td>
+                                            <td>修复新浪首页大量报错问题</td>
+                                        </tr>
+                                        <tr>
+                                            <td>1.7.3</td>
+                                            <td>加了 gzip，并且强缓存</td>
+                                        </tr>
+                                        <tr>
+                                            <td>1.7.2</td>
+                                            <td>修复 undefined label 的问题</td>
+                                        </tr>
+                                        <tr>
+                                            <td>1.7.1</td>
+                                            <td>修复 Firefox 下的一个错误；修复部分”无内容“的错误</td>
+                                        </tr>
                                         <tr>
                                             <td>1.7.0</td>
                                             <td>采用 bootstrap 构建的全新的 UI；增加代码详情页的“信息”面板</td>
