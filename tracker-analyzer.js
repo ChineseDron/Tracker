@@ -1,11 +1,10 @@
 /** 
  * Tracker Analyzer
- * @version 1.7.4
+ * @version 1.7.5
  * @author dron
  * @create 2012-12-22
  */
 
-// TODO: http://julying.com/
 // TODO: 优化解析速度，思路：外链文件与内嵌代码同时
 // TODO: 搜狐的所有脚本都是错误的：http://news.sohu.com/20130402/n371435425.shtml 有可能是因为设置了 document.domain
 // TODO: 按住 alt 键，再点击 Tracker，出选项面板
@@ -15,6 +14,7 @@
 // TODO: 防 frame 案例：http://monw3c.blogbus.com/logs/217571282.html ，有时间继续科研下
 // TODO: 帮助菜单中加入版本历史
 // TODO: http://bj.house.sina.com.cn/
+// TODO: feedback 加入 tracker 版本的统计
 
 void function( window, factory ){
     var host;
@@ -42,7 +42,7 @@ void function( window, factory ){
     push = [].push;
     floor = Math.floor;
     max = Math.max;
-    version = "1.7.4";
+    version = "1.7.5";
 
     var getShareLink = function(){
         var url = "http://service.weibo.com/share/share.php";
@@ -68,7 +68,7 @@ void function( window, factory ){
             var callbacks, esc, service, timeout;
             
             callbacks = {};
-            timeout = 5e3;
+            timeout = 10e3;
 
             host.remoteProxyCallback = function( data ){
                 var c;
@@ -363,7 +363,7 @@ void function( window, factory ){
                 var xhr, pm, timeout, timer;
 
                 pm = new promise();
-                timeout = 5e3;
+                timeout = 10e3;
 
                 if( XMLHttpRequest )
                     xhr = new XMLHttpRequest();
@@ -945,73 +945,6 @@ void function( window, factory ){
                     "</html>"
                 ].join( "" ),
 
-                controllerCSS: [
-                    ".navbar, .table{ margin-bottom: 0; }",
-                    "#top-navbar .navbar-inner{ border-radius: 0; }",
-                    "#code-detail .nav-tabs{ margin-bottom: 0; }",
-                    "#code-detail .nav-tabs li a{ color: #555; }",
-
-                    "::-webkit-scrollbar-thumb{ background: #ddd; min-height: 50px; outline-offset: -2px; outline: 2px solid #fff; }",
-                    "::-webkit-scrollbar-thumb:hover{ background: #666; }",
-                    "::-webkit-scrollbar{ width: 12px; height: 12px; }",
-                    "::-webkit-scrollbar-track-piece{ background: #fafafa; -webkit-border-radius: 0; }",
-
-                    "html, body, table{ font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei'; }",
-                    "html, body{ width: 100%; height: 100%; overflow: hidden; }",
-
-                    // commons
-                    ".scrollable{ overflow: auto; }",
-                    ".ellipsisable{ white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }",
-                    ".relative{ position: relative; }",
-                    ".absolute{ position: absolute; }",
-                    "table.compact-width th{ padding: 8px 5px; }",
-
-                    ".tab-content li{ display: none; width: 100%; height: 100%; }",
-                    ".tab-content li.tab-content-active{ display: block; }",
-
-                    "#top-navbar .close{ padding: 7px 18px 0 0; }",
-                    "#top-navbar .brand{ color: #333; }",
-
-                    ".pages{}",
-                    ".page{ display: none; }",
-
-                    "#page-home{ display: block; }",
-
-                    "#list-codes{ cursor: default; }",
-                    "#list-codes-tbody .none{ color: #999; }",
-                    "#list-codes-tbody .stress{ color: #e5818a; }",
-
-                    "#code-detail{ left: 222px; top: 0; border-left: 1px solid #cacaca; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.065); display: none; }",
-                    "#code-detail .code-toolbar{ height: 42px; background-color: #fafafa; border-bottom: 1px solid #d5d5d5; }",
-                    "#code-detail ul.code-toolbar-inner{ list-style-type: none; height: 100%; margin: 0; padding: 0; }",
-                    "#code-detail .code-toolbar li{ float: left; display: block; }",
-                    "#code-detail .code-toolbar li.right{ float: right; }",
-                    "#code-detail .code-toolbar li.close-button-like{ padding: 8px 12px 0 14px; }",
-                    "#code-detail .code-toolbar li.tab-like{ padding: 5px 0 0 30px; }",
-                    "#code-detail .code-toolbar li.label-like{ line-height: 36px; padding: 4px 10px 0; color: #999; }",
-                    "#code-detail .code-toolbar li.image-like{ padding: 12px 0 0 8px; }",
-                    "#code-detail .code-toolbar .image{ width: 16px; height: 16px; border: 1px solid #ccc; }",
-                    "#code-detail .code-toolbar .arrive{ background-color: #bddbef; }",
-                    "#code-detail .code-toolbar .unarrive{ background-color: #fff; }",
-
-                    "#code-content{ width: 100%; height: 100%; }",
-                    "#code-content pre{ padding: 0; margin: 0; border: 0; font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei'; border-radius: 0; background-color: transparent; white-space: pre; }",
-                    "#code-content .gutter{ position: absolute; left: 0; top: 0; width: 50px; background-color: #fafafa; text-align: right; padding: 5px; z-index: 1; }",
-                    "#code-content .gutter pre{ color: #ccc; }",
-                    "#code-content .lines{ position: absolute; left: 60px; top: 0; padding: 5px; }",
-                    "#code-content .lines .arrive{ background-color: #bddbef; padding: 0 3px; border-radius: 2px; margin-left: -3px; color: #000; }",
-                    "#code-content .timeout-code, #code-content .empty-code{ padding: 10px; color: #ccc; }",
-                    
-                    "#code-info{ padding: 30px; }",
-                    "#code-info .group{ margin: 0 0 10px; }",
-                    "#code-info .group dt{ display: block; float: left; width: 90px; }",
-                    "#code-info .group dd{ display: block; margin-left: 90px; }",
-
-                    "#loading{ position: absolute; left: 0; top: 0; background: rgba(0,0,0,.5); width: 100%; height: 100%; text-align: left; z-index: 100; }",
-                    "#loading span{ color: #fff; font-size: 16px; padding: 14px 0 0 14px; display: inline-block; text-shadow: 0 0 3px #000; }",
-                    "#loading span#waitTime{ padding-left: 10px; }",
-                ].join( "" ),
-
                 controllerPage: [
                     "<!DOCTYPE html>",
                     "<html>",
@@ -1019,12 +952,11 @@ void function( window, factory ){
                         "<meta charset='@{charset}'>",
                         "<meta name='author' content='dron'>",
                         "<title>Tracker!</title>",
-                        "<link href='@{resourcePath}/bootstrap/css/bootstrap.min.css' rel='stylesheet' media='screen'>",
-                        "<style>@{css}</style>",
+                        "<link href='@{cachePhp}./bootstrap/css/bootstrap.min.css&amp;version=2013041602' type='text/css' rel='stylesheet' />",
+                        "<link href='@{cachePhp}./controller-resources/controller.css&amp;version=2013041603' type='text/css' rel='stylesheet' />",
                     "</head>",
                     "<body>",
                         "@{header}",
-
                         "<div class='main'>",
                             "<div class='pages'>",
                                 "<div id='page-home' class='page relative'>",
@@ -1033,10 +965,8 @@ void function( window, factory ){
                                 "</div>",
                             "</div>",
                         "</div>",
-
                         "@{dialogAbout}",
                         "@{globalLoading}",
-
                         "<script> window.readyState = 'done'; </script>",
                     "</body>",
                     "</html>"
@@ -1944,10 +1874,11 @@ void function( window, factory ){
                         util.delay( function(){
                             pm.resolve( util.format( view.templates.controllerPage, withWidths( {
                                 charset: global.document.characterSet || "utf-8",
-                                resourcePath: "http://www.ucren.com/tracker/",
+                                cachePhp: "http://www.ucren.com/tracker/cache.php?file=",
+
                                 shareLink: getShareLink,
 
-                                css: view.templates.controllerCSS,
+                                // css: view.templates.controllerCSS,
                                 header: view.templates.controllerTopbar,
 
                                 codeList: util.format( view.templates.controllerCodeList, withWidths() ),

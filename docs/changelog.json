@@ -1,0 +1,19 @@
+[
+    { "version": "1.7.5", "description": "延时超时时间，对于在解析较慢网站比较有利" },
+    { "version": "1.7.4", "description": "修复新浪首页大量报错问题" },
+    { "version": "1.7.3", "description": "加了 gzip，并且强缓存" },
+    { "version": "1.7.2", "description": "修复 undefined label 的问题" },
+    { "version": "1.7.1", "description": "修复 Firefox 下的一个错误；修复部分”无内容“的错误" },
+    { "version": "1.7.0", "description": "采用 bootstrap 构建的全新的 UI；增加代码详情页的“信息”面板" },
+    { "version": "1.6.4", "description": "Feedback 字段增加" },
+    { "version": "1.6.3", "description": "UI 细微调整" },
+    { "version": "1.6.2", "description": "UI 调整，优化文件名显示，重写代理 php 文件" },
+    { "version": "1.6.1", "description": "屏蔽 IE 条件注释，从这个版本开始，使用 3 位版本号" },
+    { "version": "1.6", "description": "性能优化：分析速度提高至少十倍，JS 代码框显示体验无延迟！500K JS 毫秒级打开" },
+    { "version": "1.5", "description": "解决 script 标签 src 属性无法正确获取的问题，并改进对 seajs/requirejs 等 loader 的兼容问题" },
+    { "version": "1.4", "description": "对 JS 代码中包含 Html 注释进行容错；修复目标位于淘宝 cdn 的脚本不能正常解析问题；调整分析进度显示" },
+    { "version": "1.3", "description": "修复高版本 JS 系统方法与用户实现的版本存在冲突的问题" },
+    { "version": "1.2", "description": "新增”推荐给好友“，修改反馈机制" },
+    { "version": "1.1", "description": "重构，基于语法树加钩子，确保插入代码的正确性" },
+    { "version": "1.0", "description": "初版" }
+]

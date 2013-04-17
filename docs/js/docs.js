@@ -13,7 +13,21 @@ $( function(){
         }
     }();
 
+    var loadChangelog = function(){
+        var data;
+        return function(){
+            if( !data ) $.get( "./changelog.json", function( json ){
+                data = json;
+                data.forEach( function( item ){
+                    $changelogTable.append( "<tr><td>" + item.version + "</td><td>" + 
+                        item.description + "</td></tr>" );
+                } );
+            } );  
+        };
+    }();
+
     var $changelog = $( "#changelog-content" );
+    var $changelogTable = $( "tbody", $changelog );
 
     $( ".expand-changelog" ).click( function(){
         var $this = $( this );
@@ -25,6 +39,7 @@ $( function(){
             $this.html( "- 收起" );
             $changelog.addClass( "show" );
             $this.data( "expanded", "1" );
+            loadChangelog();
         }
     } );
 

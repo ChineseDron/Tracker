@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="author" content="dron">
         <link href="http://ucren.com/favicon.ico" rel="shortcut icon">
-        <link href="../bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <link href="../cache.php?file=./bootstrap/css/bootstrap.min.css&amp;version=20130416" rel="stylesheet" media="screen">
         <link href="css/docs.css" rel="stylesheet" media="screen">
     </head>
     <body data-spy="scroll" data-target=".sidebar">
@@ -170,7 +170,6 @@
                             </div>
 
                             <div id="changelog-content">
-                                <!-- // TODO: 这段考虑分离到其它文本文件中，异步加载 -->
                                 <table class="table table-bordered table-hover">
                                     <thead>
                                         <tr>
@@ -179,70 +178,6 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>1.7.4</td>
-                                            <td>修复新浪首页大量报错问题</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.7.3</td>
-                                            <td>加了 gzip，并且强缓存</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.7.2</td>
-                                            <td>修复 undefined label 的问题</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.7.1</td>
-                                            <td>修复 Firefox 下的一个错误；修复部分”无内容“的错误</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.7.0</td>
-                                            <td>采用 bootstrap 构建的全新的 UI；增加代码详情页的“信息”面板</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.6.4</td>
-                                            <td>Feedback 字段增加</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.6.3</td>
-                                            <td>UI 细微调整</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.6.2</td>
-                                            <td>UI 调整，优化文件名显示，重写代理 php 文件</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.6.1</td>
-                                            <td>屏蔽 IE 条件注释，从这个版本开始，使用 3 位版本号</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.6</td>
-                                            <td>性能优化：分析速度提高至少十倍，JS 代码框显示体验无延迟！500K JS 毫秒级打开</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.5</td>
-                                            <td>解决 script 标签 src 属性无法正确获取的问题，并改进对 seajs/requirejs 等 loader 的兼容问题</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.4</td>
-                                            <td>对 JS 代码中包含 Html 注释进行容错；修复目标位于淘宝 cdn 的脚本不能正常解析问题；调整分析进度显示</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.3</td>
-                                            <td>修复高版本 JS 系统方法与用户实现的版本存在冲突的问题</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.2</td>
-                                            <td>新增”推荐给好友“，修改反馈机制</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.1</td>
-                                            <td>重构，基于语法树加钩子，确保插入代码的正确性</td>
-                                        </tr>
-                                        <tr>
-                                            <td>1.0</td>
-                                            <td>初版</td>
-                                        </tr>                             
                                     </tbody>
                                 </table>
                             </div>
@@ -336,8 +271,8 @@
             </div>
         </footer>
 
-        <script src="../bootstrap/js/jquery.min.js"></script>
-        <script src="../bootstrap/js/bootstrap.min.js"></script>
+        <script src="../cache.php?file=./bootstrap/js/jquery.min.js&amp;version=20130416"></script>
+        <script src="../cache.php?file=./bootstrap/js/bootstrap.min.js&amp;version=20130416"></script>
         <script src="js/docs.js"></script>
     </body>
 </html>
