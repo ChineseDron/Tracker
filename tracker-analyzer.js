@@ -5,17 +5,6 @@
  * @create 2012-12-22
  */
 
-// TODO: 优化解析速度，思路：外链文件与内嵌代码同时
-// TODO: 搜狐的所有脚本都是错误的：http://news.sohu.com/20130402/n371435425.shtml 有可能是因为设置了 document.domain
-// TODO: 按住 alt 键，再点击 Tracker，出选项面板
-// TODO: http://docs.emmet.io/cheat-sheet/  这页剩下解析超时了
-// TODO: document.write 的脚本如何处理？
-// TODO: 防抓取的脚本需要有策略处理，如果关在无办法，也不要把问题出现在界面上
-// TODO: 防 frame 案例：http://monw3c.blogbus.com/logs/217571282.html ，有时间继续科研下
-// TODO: 帮助菜单中加入版本历史
-// TODO: http://bj.house.sina.com.cn/
-// TODO: feedback 加入 tracker 版本的统计
-
 void function( window, factory ){
     var host;
     
