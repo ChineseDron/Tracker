@@ -1,6 +1,6 @@
 /** 
  * Tracker Analyzer
- * @version 1.7.5
+ * @version 1.7.6
  * @author dron
  * @create 2012-12-22
  */
@@ -22,8 +22,9 @@ void function( window, factory ){
     host.TrackerGlobalEvent.fire( "TrackerJSLoad" );
 
 }( this, function( window ){
-    var global, host, location, slice, floor, max, push, version;
+    var global, host, location, slice, floor, max, push, version, arriveBuffer;
 
+    version = "1.7.6";
     global = window;
     host = global.document;
     location = global.location;
@@ -31,14 +32,7 @@ void function( window, factory ){
     push = [].push;
     floor = Math.floor;
     max = Math.max;
-    version = "1.7.5";
-
-    var getShareLink = function(){
-        var url = "http://service.weibo.com/share/share.php";
-        url = util.param( url, "title", "%40dron%E5%BE%AE%E5%8D%9A%20%E6%88%91%E6%AD%A3%E5%9C%A8%E4%BD%BF%E7%94%A8%20Tracker%20%E6%8E%92%E6%9F%A5%E7%BD%91%E9%A1%B5%E4%B8%AD%E5%86%97%E4%BD%99%E7%9A%84%E8%84%9A%E6%9C%AC%EF%BC%8C%E6%8C%BA%E7%BB%99%E5%8A%9B%E7%9A%84%EF%BC%8C%E5%85%8D%E5%AE%89%E8%A3%85%EF%BC%8C%E7%9B%B4%E6%8E%A5%E5%9C%A8%E6%B5%8F%E8%A7%88%E5%99%A8%E4%B8%AD%E5%B0%B1%E8%83%BD%E7%94%A8%EF%BC%8C%E6%8E%A8%E8%8D%90%E5%A4%A7%E5%AE%B6%E8%AF%95%E8%AF%95%E3%80%82" );
-        url = util.param( url, "url", encodeURIComponent( "http://ucren.com/tracker/" ) );
-        return url;
-    };
+    arriveBuffer = [];
 
     var util = function(){
         var excapeRegx = function(){
@@ -62,7 +56,7 @@ void function( window, factory ){
             host.remoteProxyCallback = function( data ){
                 var c;
                 if( c = callbacks[ data.url ] )
-                    c( data.content );
+                    c( data );
             };
 
             esc = function(){
@@ -97,9 +91,12 @@ void function( window, factory ){
                     script.charset = charset || "utf-8";
                     host.head.appendChild( script );
 
-                    callbacks[ url ] = function( content ){
+                    callbacks[ url ] = function( data ){
                         clearTimeout( timer );
-                        pm.resolve( content );
+                        pm.resolve( {
+                            response: data.content,
+                            consum: data.consum
+                        } );
                         script = null;
                         delete callbacks[ url ];
                     };
@@ -349,7 +346,7 @@ void function( window, factory ){
             },
 
             request: function( url, charset ){
-                var xhr, pm, timeout, timer;
+                var xhr, pm, timeout, timer, timeStart, timeConsum;
 
                 pm = new promise();
                 timeout = 10e3;
@@ -367,7 +364,11 @@ void function( window, factory ){
                 xhr.onreadystatechange = function(){
                     if( xhr.readyState == 4 && xhr.status == 200 ){
                         clearTimeout( timer );
-                        pm.resolve( xhr.responseText );
+                        timeConsum = util.time();
+                        pm.resolve( { 
+                            response: xhr.responseText,
+                            consum: timeConsum - timeStart
+                        } );
                         xhr = null;
                     }
                 };
@@ -378,6 +379,7 @@ void function( window, factory ){
                     xhr = null;
                 }, timeout );
 
+                timeStart = util.time();
                 xhr.send( null );
 
                 return pm;
@@ -699,6 +701,13 @@ void function( window, factory ){
         };
     }();
 
+    var getShareLink = function(){
+        var url = "http://service.weibo.com/share/share.php";
+        url = util.param( url, "title", "%40dron%E5%BE%AE%E5%8D%9A%20%E6%88%91%E6%AD%A3%E5%9C%A8%E4%BD%BF%E7%94%A8%20Tracker%20%E6%8E%92%E6%9F%A5%E7%BD%91%E9%A1%B5%E4%B8%AD%E5%86%97%E4%BD%99%E7%9A%84%E8%84%9A%E6%9C%AC%EF%BC%8C%E6%8C%BA%E7%BB%99%E5%8A%9B%E7%9A%84%EF%BC%8C%E5%85%8D%E5%AE%89%E8%A3%85%EF%BC%8C%E7%9B%B4%E6%8E%A5%E5%9C%A8%E6%B5%8F%E8%A7%88%E5%99%A8%E4%B8%AD%E5%B0%B1%E8%83%BD%E7%94%A8%EF%BC%8C%E6%8E%A8%E8%8D%90%E5%A4%A7%E5%AE%B6%E8%AF%95%E8%AF%95%E3%80%82" );
+        url = util.param( url, "url", encodeURIComponent( "http://ucren.com/tracker/" ) );
+        return url;
+    };
+
     var Code = function(){
         var klass;
 
@@ -724,6 +733,9 @@ void function( window, factory ){
 
             this.executiveCode = "";
             this.linesViewHtml = [];
+
+            this.loadConsum =
+            this.runConsum = -1;
 
             this.onReady = promise.fuze();
 
@@ -972,7 +984,7 @@ void function( window, factory ){
                             "</ul>",
                             "<ul class='nav pull-right'>",
                                 "<li class='dropdown'>",
-                                    "<a href='#' class='dropdown-toggle' data-toggle='dropdown'>",
+                                    "<a href='' onclick='return false;' class='dropdown-toggle' data-toggle='dropdown'>",
                                         "&#35270;&#22270;",
                                         "<b class='caret'></b>",
                                     "</a>",
@@ -982,7 +994,7 @@ void function( window, factory ){
                                     "</ul>",
                                 "</li>",
                                 "<li class='dropdown'>",
-                                    "<a href='#' class='dropdown-toggle' data-toggle='dropdown'>",
+                                    "<a href='' onclick='return false;' class='dropdown-toggle' data-toggle='dropdown'>",
                                         "&#24110;&#21161;",
                                         "<b class='caret'></b>",
                                     "</a>",
@@ -1002,14 +1014,16 @@ void function( window, factory ){
                     "<table class='table compact-width'>",
                         "<thead>",
                             "<tr>",
-                                "<th width='@{widthIndex}'>&#24207;&#21495;</th>",
+                                "<th width='@{widthIndex}'>#</th>",
                                 "<th width='@{widthName}'>&#21517;&#31216;</th>",
                                 "<th width='@{widthType}'>&#31867;&#22411;</th>",
-                                "<th width='@{widthCover}'>&#25191;&#34892;&#35206;&#30422;&#29575;</th>",
+                                "<th width='@{widthCover}'>&#25191;&#34892;&#35206;&#30422;</th>",
                                 "<th width='@{widthCoverLine}'>&#25191;&#34892;&#34892;&#25968;</th>",
                                 "<th width='@{widthLines}'>&#24635;&#34892;&#25968;</th>",
                                 "<th width='@{widthSize}'>&#21407;&#22987;&#22823;&#23567;</th>",
                                 "<th width='@{widthBSize}'>&#35299;&#21387;&#22823;&#23567;</th>",
+                                "<th width='@{widthLoadConsum}'>&#21152;&#36733;&#32791;&#26102;</th>",
+                                "<th width='@{widthRunConsum}'>&#36816;&#34892;&#32791;&#26102;</th>",
                                 "<th width='@{widthRError}'>&#25191;&#34892;&#25253;&#38169;</th>",
                                 "<th width='@{widthSError}'>&#35821;&#27861;&#38169;&#35823;</th>",
                                 "<th width='@{widthState}'>&#29366;&#24577;</th>",
@@ -1028,6 +1042,8 @@ void function( window, factory ){
                                 "<col width='@{widthLines}'>",
                                 "<col width='@{widthSize}'>",
                                 "<col width='@{widthBSize}'>",
+                                "<col width='@{widthLoadConsum}'>",
+                                "<col width='@{widthRunConsum}'>",
                                 "<col width='@{widthRError}'>",
                                 "<col width='@{widthSError}'>",
                                 "<col width='@{widthState}'>",
@@ -1145,6 +1161,8 @@ void function( window, factory ){
                         "<td><div class='ellipsisable' style='width: @{widthLines}px;'>@{rowsCount}</div></td>",
                         "<td><div class='ellipsisable' style='width: @{widthSize}px;'>@{size}</div></td>",
                         "<td><div class='ellipsisable' style='width: @{widthBSize}px;'>@{bsize}</div></td>",
+                        "<td><div id='code-@{id}-loadConsum' class='ellipsisable' style='width: @{widthLoadConsum}px;'>@{loadConsum}</div></td>",
+                        "<td><div id='code-@{id}-runConsum' class='ellipsisable' style='width: @{widthRunConsum}px;'>@{runConsum}</div></td>",
                         "<td><div id='code-@{id}-runErrors' class='ellipsisable' style='width: @{widthRError}px;'>@{rerror}</div></td>",
                         "<td><div class='ellipsisable' style='width: @{widthSError}px;'>@{serror}</div></td>",
                         "<td><div class='ellipsisable' style='width: @{widthState}px;'>@{state}</div></td>",
@@ -1429,11 +1447,11 @@ void function( window, factory ){
                     r = code.arriveRowsCount / code.rowsCount * 100 || 0;
                     c = r == 0 ? "stress" : "";
 
-                    return "<span class='" + c + "'>" + r.toFixed( 2 ) + " %</span>";
+                    return "<span class='" + c + "'>" + r.toFixed( 1 ) + "%</span>";
                 };
 
                 var size = function( number ){
-                    return ( number / 1024 ).toFixed( 2 ) + " k";
+                    return ( number / 1024 ).toFixed( 1 ) + "k";
                 };
 
                 var yesno = function( bool ){
@@ -1463,12 +1481,22 @@ void function( window, factory ){
                     };
                 };
 
+                var time = function( time, s ){
+                    if( time == -1 )
+                        return "-1";
+                    if( !s )
+                        return time + "ms";
+                    else
+                        return ( time / 1000 ).toFixed( 2 ) + "s";
+                };
+
                 var width = function(){
                     var mapping, offsets;
 
                     mapping = {
-                        index: 40, name: 160, type: 70, cover: 80, "cover-line": 70, lines: 60, 
-                        size: 90, bsize: 90, rerror: 70, serror: 70, state: 50
+                        index: 20, name: 120, type: 70, cover: 60, "cover-line": 60, lines: 60, 
+                        size: 60, bsize: 60, rerror: 60, serror: 60, state: 50, loadConsum: 60,
+                        runConsum: 60
                     };
 
                     offsets = {
@@ -1491,7 +1519,9 @@ void function( window, factory ){
                         widthBSize: width( "bsize" ),
                         widthRError: width( "rerror" ),
                         widthSError: width( "serror" ),
-                        widthState: width( "state" )
+                        widthState: width( "state" ),
+                        widthLoadConsum: width( "loadConsum" ),
+                        widthRunConsum: width( "runConsum" )
                     };
 
                     if( !data )
@@ -1517,7 +1547,9 @@ void function( window, factory ){
                         bsize: size( code.beautifySize ),
                         rerror: yesno( code.runErrors ),
                         serror: yesno( code.syntaxErrors ),
-                        state: state( code.state )
+                        state: state( code.state ),
+                        runConsum: time( code.runConsum ),
+                        loadConsum: time( code.loadConsum )
                     } ) );
                 };
 
@@ -1836,17 +1868,20 @@ void function( window, factory ){
                         if( currentSelectedCode == code.id )
                             this.showCodeDetail( code.id );
 
-                        var rateEl, arriveRowsCountEl, runErrorsEl;
+                        var rateEl, arriveRowsCountEl, runErrorsEl, runConsumEl, loadConsumEl;
 
                         rateEl = document.getElementById( "code-" + code.id + "-rate" );
                         arriveRowsCountEl = document.getElementById( "code-" + code.id + 
                             "-arriveRowsCount" );
-                        runErrorsEl = document.getElementById( "code-" + code.id + 
-                            "-runErrors" );
+                        runErrorsEl = document.getElementById( "code-" + code.id + "-runErrors" );
+                        runConsumEl = document.getElementById( "code-" + code.id + "-runConsum" );
+                        loadConsumEl = document.getElementById( "code-" + code.id + "-loadConsum" );
 
                         rateEl.innerHTML = rate( code );
                         arriveRowsCountEl.innerHTML = code.arriveRowsCount;
                         runErrorsEl.innerHTML = yesno( code.runErrors );
+                        runConsumEl.innerHTML = time( code.runConsum );
+                        loadConsumEl.innerHTML = time( code.loadConsum );
 
                         code.lastUpdate = util.time();
                     },
@@ -2074,6 +2109,7 @@ void function( window, factory ){
                 "[ Controller ]", view.ControlFrame.state, panelMode,
                 "[ AnalysisTime ]", analysisTime,
                 "[ Stay ]", ( ( util.time() - startTime ) / 1000 ).toFixed( 1 ) + "s",
+                "[ Version ]", version,
                 "[ Url ]", url ].join( " " ) );
 
             return urlBase + message;
@@ -2178,7 +2214,7 @@ void function( window, factory ){
             arrivedSnippetPut: function( id ){
                 var code;
                 if( !arrivedSnippetCache[ id ] ){
-                    arrivedSnippetCache[ id ] = true;
+                    arrivedSnippetCache[ id ] = 1;
 
                     if( beginOfLineSnippetCache[ id ] && ( code = snippetToCodeCache[ id ] ) ){
                         code.arriveRowsCount ++;
@@ -2223,7 +2259,7 @@ void function( window, factory ){
 
         var overideInsertingNodeFunction = function( fn ){
             return function( node ){
-                var me, args, url, code;
+                var me, args, url, code, content;
 
                 me = this;
                 args = slice.apply( arguments );
@@ -2236,9 +2272,12 @@ void function( window, factory ){
                 if( !url )
                     return fn.apply( me, args );
 
-                util.intelligentGet( url ).then( function( content ){
+                util.intelligentGet( url ).then( function( data ){
+                    content = data.response;
                     code = new Code( url, content );
+
                     code.setType( "append" );
+                    code.loadConsum = data.consum;
                     CodeList.add( code );
 
                     node.removeAttribute( "src" );
@@ -2250,8 +2289,10 @@ void function( window, factory ){
                         index = util.handle( node );
                         
                         node.appendChild(
-                            document.createTextNode( "__trackerScriptStart__(" + index + ");" + 
-                                code.executiveCode + ";"  ) );
+                            document.createTextNode( 
+                                "__trackerScriptStart__('" + code.id + "'," + index + ");" + 
+                                code.executiveCode + "; __trackerScriptEnd__('" +
+                                code.id + "');" ) );
 
                         fn.apply( me, args );
                         node.src = url;
@@ -2327,12 +2368,12 @@ void function( window, factory ){
             };
         };
 
-        window.__trackerScriptStart__ = function( scriptIndex ){
-            var script;
+        window.__trackerScriptStart__ = function( codeId, scriptTagIndex ){
+            var script, code;
             
-            script = scriptIndex === undefined ? 
+            script = scriptTagIndex === undefined ? 
                 scriptElements[ scriptElements.length - 1 ] :
-                util.handle( scriptIndex );
+                util.handle( scriptTagIndex );
 
             if( script && script.hasAttribute( "tracker-src" ) )
                 script.src = script.getAttribute( "tracker-src" );
@@ -2341,6 +2382,20 @@ void function( window, factory ){
                 if( script.onreadystatechange )
                     script.onreadystatechange();
             }, 0 );
+
+            code = CodeList.get( codeId );
+            code._startTime = new Date();
+        };
+
+        window.__trackerScriptEnd__ = function( codeId ){
+            var code, endTime;
+
+            endTime = new Date();
+            code = CodeList.get( codeId );
+            code.runConsum = endTime.getTime() - code._startTime.getTime();
+            // TODO: 此值虚高，因为钩子运行本身也产生耗时，需要扣除钩子时间才准确
+            delete code._startTime;
+            code.lastModified = util.time();
         };
 
         window.onbeforeunload = function(){
@@ -2384,7 +2439,8 @@ void function( window, factory ){
 
     // business logic
     void function(){
-        var currentCodeId, controllerOnLoad, updateInterval, checkCodes, hookDebuggingCode, codes;
+        var currentCodeId, controllerOnLoad, updateInterval, checkCodes, hookDebuggingCode, codes,
+            arriveIdWorker;
 
         controllerOnLoad = promise.fuze()
         host.TrackerGlobalEvent = Event.bind();
@@ -2399,7 +2455,8 @@ void function( window, factory ){
         };
 
         hookDebuggingCode = function( content, code ){
-            return "__trackerScriptStart__();" + content;
+            return "__trackerScriptStart__('" + code.id + "');" + content + 
+                "; __trackerScriptEnd__('" + code.id + "');";
         };
 
         view.ControlFrame.pageBuilder( function( html ){
@@ -2414,7 +2471,7 @@ void function( window, factory ){
                 pageStartingOf = "<script> parent.document.Decorate( window, document ); </script>";
 
             util.request( location.href, charset ).then( function( html ){
-                html = html.replace( ieConditionalCommentsRegx, "" );
+                html = html.response.replace( ieConditionalCommentsRegx, "" );
                 AsynStringReplacer.replace( html, allScriptTagRegx, 
                     function( raw, openTag, content, closeTag ){
                         var pm, code;
@@ -2438,6 +2495,7 @@ void function( window, factory ){
                         view.Loading.addCount();
 
                         code = new Code( null, content );
+                        code.loadConsum = 0;
                         code.setType( "embed" );
                         CodeList.add( code );
 
@@ -2452,17 +2510,17 @@ void function( window, factory ){
                 ).then( function( html ){
                     AsynStringReplacer.replace( html, scriptRegx, 
                         function( raw, openTag, url, closeTag ){
-                            var pm;
+                            var pm, content;
 
                             pm = new promise;
                             openTag = openTag.replace( srcPropertyRegx, " tracker-src='$1'" );
 
-                            util.intelligentGet( url ).then( function( content ){
+                            util.intelligentGet( url ).then( function( data ){
                                 var code;
 
-                                // console.log( url, content );
-
+                                content = data.response;
                                 code = new Code( url, content );
+                                code.loadConsum = data.consum;
                                 code.setType( "link" );
                                 CodeList.add( code );
 

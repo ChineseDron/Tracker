@@ -38,7 +38,7 @@
                         <div class="screenful">
                             <h2 id="overview">1 概述</h2>
                             <p>Tracker 是一个运行于浏览器书签栏的 JavaScript 嗅探工具，她将被启动于其他网页之后，为了协助您了解目标网页中 JavaScript 的运行情况，包括：执行覆盖率、执行行数、是否存在执行或语法错误等信息，当你对一个目标网页使用 Tracker，他们将被呈现在像下面截图所示的一个表格当中在目标网页下边。</p>
-                            <p class="screenshot"><img src="img/screenshot.png" class="img-rounded img-polaroid"></p>
+                            <p class="screenshot"><img src="img/blank.png" data-original="img/screenshot.png" class="img-rounded img-polaroid"></p>
                             <p class="text-center"><a href="#quickstart" class="btn btn-primary btn-large">不用安装，快速开始</a></p>
                         </div>
                         
@@ -81,61 +81,73 @@
                                     <li>
                                         <span><strong>名称：</strong>通常为 JS 文件名，如果没有文件名，显示为中划线 “-” （如内嵌类型的脚本）；</span>
                                         <span class="screenshot-fl">
-                                            <img src="img/screenshot-name.png" class="img-rounded img-polaroid">
+                                            <img src="img/blank.png" data-original="img/screenshot-name.png" class="img-rounded img-polaroid">
                                         </span>
                                     </li>
                                     <li>
                                         <span><strong>类型：</strong>表明当前 JS 资源是内嵌的、外链文件的还是运行时动态插入的；</span>
                                         <span class="screenshot-fl">
-                                            <img src="img/screenshot-type.png" class="img-rounded img-polaroid">
+                                            <img src="img/blank.png" data-original="img/screenshot-type.png" class="img-rounded img-polaroid">
                                         </span>
                                     </li>
                                     <li>
                                         <span><strong>执行覆盖率：</strong>当前 JS 资源截止现在已执行的比率，计算方法 = 执行行数 / 总行数；</span>
                                         <span class="screenshot-fl">
-                                            <img src="img/screenshot-rate.png" class="img-rounded img-polaroid">
+                                            <img src="img/blank.png" data-original="img/screenshot-rate.png" class="img-rounded img-polaroid">
                                         </span>
                                     </li>
                                     <li>
                                         <span><strong>执行行数：</strong>当前 JS 资源截止现在已执行经过的行数；</span>
                                         <span class="screenshot-fl">
-                                            <img src="img/screenshot-arriveline.png" class="img-rounded img-polaroid">
+                                            <img src="img/blank.png" data-original="img/screenshot-arriveline.png" class="img-rounded img-polaroid">
                                         </span>
                                     </li>
                                     <li>
                                         <span><strong>总行数：</strong>当前 JS 资源解压后得到的总行数（注：不一定等于 JS 在压缩前的行数）；</span>
                                         <span class="screenshot-fl">
-                                            <img src="img/screenshot-line.png" class="img-rounded img-polaroid">
+                                            <img src="img/blank.png" data-original="img/screenshot-line.png" class="img-rounded img-polaroid">
                                         </span>
                                     </li>
                                     <li>
                                         <span><strong>原始大小：</strong>当前 JS 资源所占字节数；</span>
                                         <span class="screenshot-fl">
-                                            <img src="img/screenshot-size.png" class="img-rounded img-polaroid">
+                                            <img src="img/blank.png" data-original="img/screenshot-size.png" class="img-rounded img-polaroid">
                                         </span>
                                     </li>
                                     <li>
                                         <span><strong>解压大小：</strong>当前 JS 资源解压后所占字节数；</span>
                                         <span class="screenshot-fl">
-                                            <img src="img/screenshot-bsize.png" class="img-rounded img-polaroid">
+                                            <img src="img/blank.png" data-original="img/screenshot-bsize.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>加载耗时：</strong>当前 JS 资源从开始下载到下载完成消耗的时间；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/blank.png" data-original="img/screenshot-loadconsum.png" class="img-rounded img-polaroid">
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span><strong>运时耗时：</strong>当前 JS 资源从头到尾顺序执行消耗的时间；</span>
+                                        <span class="screenshot-fl">
+                                            <img src="img/blank.png" data-original="img/screenshot-runconsum.png" class="img-rounded img-polaroid">
                                         </span>
                                     </li>
                                     <li>
                                         <span><strong>执行报错：</strong>当前 JS 资源截止现在执行中是否出现错误；</span>
                                         <span class="screenshot-fl">
-                                            <img src="img/screenshot-error.png" class="img-rounded img-polaroid">
+                                            <img src="img/blank.png" data-original="img/screenshot-error.png" class="img-rounded img-polaroid">
                                         </span>
                                     </li>
                                     <li>
                                         <span><strong>语法错误：</strong>当前 JS 资源是否存在语法错误；</span>
                                         <span class="screenshot-fl">
-                                            <img src="img/screenshot-serror.png" class="img-rounded img-polaroid">
+                                            <img src="img/blank.png" data-original="img/screenshot-serror.png" class="img-rounded img-polaroid">
                                         </span>
                                     </li>
                                     <li>
                                         <span><strong>状态：</strong>本次分析的结果状态；</span>
                                         <span class="screenshot-fl">
-                                            <img src="img/screenshot-state.png" class="img-rounded img-polaroid">
+                                            <img src="img/blank.png" data-original="img/screenshot-state.png" class="img-rounded img-polaroid">
                                         </span>
                                     </li>
                                 </ul>
@@ -143,7 +155,7 @@
 
                             <h3>4.2 代码面板</h3>
                             <p>当您点击表格中某一行，此时在表格右侧出现一个代码框，用于显示当前 JS 资源解压后的代码，执行经过的语句或表达式用蓝底黑字表示，没有经过的代码为白底。</p>
-                            <p class="text-center"><img src="img/screenshot-code.png" class="img-rounded img-polaroid"></p>
+                            <p class="text-center code-panel"><img src="img/blank.png" data-original="img/screenshot-code.png" class="img-rounded img-polaroid"></p>
                         </div>
 
                         <div class="screenful">
@@ -272,6 +284,7 @@
         </footer>
 
         <script src="../cache.php?file=./bootstrap/js/jquery.min.js&amp;version=20130416"></script>
+        <script src="../cache.php?file=./docs/js/jquery.lazyload.min.js&amp;version=20130419"></script>
         <script src="../cache.php?file=./bootstrap/js/bootstrap.min.js&amp;version=20130416"></script>
         <script src="js/docs.js"></script>
     </body>

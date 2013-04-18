@@ -1,4 +1,5 @@
 [
+    { "version": "1.7.6", "description": "新增加载耗时和运行耗时统计项；修复 Firefox 下菜单不能用的问题" },
     { "version": "1.7.5", "description": "延时超时时间，对于在解析较慢网站比较有利" },
     { "version": "1.7.4", "description": "修复新浪首页大量报错问题" },
     { "version": "1.7.3", "description": "加了 gzip，并且强缓存" },
