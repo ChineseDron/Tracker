@@ -1,6 +1,6 @@
 /** 
  * Tracker Analyzer
- * @version 1.7.6
+ * @version 1.7.9
  * @author dron
  * @create 2012-12-22
  */
@@ -9,6 +9,9 @@ void function( window, factory ){
     var host;
     
     host = window.document;
+
+    if( !window.Tracker )
+        window.Tracker = host;
 
     if( window != window.parent )
         return ;
@@ -22,19 +25,19 @@ void function( window, factory ){
     host.TrackerGlobalEvent.fire( "TrackerJSLoad" );
 
 }( this, function( window ){
-    var global, host, location, slice, floor, max, push, version, arriveBuffer;
+    var global, host, location, slice, floor, max, push, join, version, controllerOnLoad;
 
-    version = "1.7.6";
+    version = "1.7.9";
     global = window;
     host = global.document;
     location = global.location;
     slice = [].slice;
     push = [].push;
+    join = [].join;
     floor = Math.floor;
     max = Math.max;
-    arriveBuffer = [];
 
-    var util = function(){
+    var util = host.util = function(){
         var excapeRegx = function(){
             var specials, regx;
 
@@ -410,12 +413,14 @@ void function( window, factory ){
             }(),
 
             onCpuFree: function( fn, process ){
-                var now, start, last, count, d, timer, limit, times;
+                var now, start, last, count, d, timer, limit, times, space;
 
                 start = last = util.time();
                 count = 0;
-                limit = 30;
-                times = 20;
+
+                times = 30;
+                space = 20;
+                limit = 100;
 
                 process = process || util.blank;
 
@@ -424,14 +429,13 @@ void function( window, factory ){
 
                     if( ( d = now - last ) < limit && ++ count == times ){
                         clearInterval( timer );
-                        fn();
+                        return fn();
                     }else if( d > limit ){
                         count = 0;
-                        process( now - start );
                     }
 
-                    last = now;
-                }, 16 );
+                    process( ( last = now ) - start );
+                }, space );
             }
         }
     }();
@@ -598,7 +602,7 @@ void function( window, factory ){
         };
 
         promise.fuze = function(){
-            var queue = [], fn, infire;
+            var queue = [], fn, infire, args;
 
             fn = function( process ){
                 infire ? process() : queue.push( process );
@@ -606,8 +610,8 @@ void function( window, factory ){
 
             fn.fire = function(){
                 while( queue.length )
-                    queue.shift()();
-                infire = true;
+                    queue.shift().apply( null, arguments );
+                fn.fired = infire = true;
             };
 
             return fn;
@@ -729,7 +733,7 @@ void function( window, factory ){
             this.beautifySize = -1;
             this.runErrors = [];
             this.syntaxErrors = [];
-            this.snippetsIdSet = {}; // 已切分成代码碎片的 id 集合
+            // this.snippetsIdSet = {}; // 已切分成代码碎片的 id 集合
 
             this.executiveCode = "";
             this.linesViewHtml = [];
@@ -878,7 +882,7 @@ void function( window, factory ){
         return klass;
     }();
 
-    var CodeList = function(){
+    var CodeList = host.CodeList = function(){
         var single, codes;
 
         codes = [];
@@ -926,7 +930,7 @@ void function( window, factory ){
         return single;
     }();
 
-    var view = function(){
+    var View = host.View = function(){
         return {
             templates: {
                 url: "<a href='@{url}' target='_blank'>@{url}</a>",
@@ -947,24 +951,24 @@ void function( window, factory ){
                 ].join( "" ),
 
                 controllerPage: [
-                    "<!DOCTYPE html>",
+                    "<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Frameset//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd'>",
                     "<html>",
                     "<head>",
                         "<meta charset='@{charset}'>",
                         "<meta name='author' content='dron'>",
                         "<title>Tracker!</title>",
                         "<link href='@{cachePhp}./bootstrap/css/bootstrap.min.css&amp;version=2013041602' type='text/css' rel='stylesheet' />",
-                        "<link href='@{cachePhp}./controller-resources/controller.css&amp;version=2013041603' type='text/css' rel='stylesheet' />",
+                        "<link href='@{cachePhp}./controller-resources/controller.css&amp;version=20130422' type='text/css' rel='stylesheet' />",
                     "</head>",
                     "<body>",
                         "@{header}",
                         "<div class='main'>",
-                            "<div class='pages'>",
-                                "<div id='page-home' class='page relative'>",
+                            "<ul id='pages' class='unstyled tab-content'>",
+                                "<li class='tab-content-active'>",
                                     "@{codeList}",
                                     "@{codeDetail}",
-                                "</div>",
-                            "</div>",
+                                "</li>",
+                            "</ul>",
                         "</div>",
                         "@{dialogAbout}",
                         "@{globalLoading}",
@@ -978,9 +982,8 @@ void function( window, factory ){
                         "<div class='navbar-inner'>",
                             "<button class='close pull-left' action='frame#close'>&times;</button>",
                             "<a class='brand'>Tracker</a>",
-                            "<ul class='nav pull-left'>",
+                            "<ul id='top-nav' class='nav pull-left' data-target='pages'>",
                                 "<li class='active'><a href='' onclick='return false'>&#20195;&#30721;&#21015;&#34920;</a></li>",
-                                // TODO: more link
                             "</ul>",
                             "<ul class='nav pull-right'>",
                                 "<li class='dropdown'>",
@@ -1002,7 +1005,7 @@ void function( window, factory ){
                                         "<li><a href='http://ucren.com/tracker/docs/index.html' target='_blank'>&#24110;&#21161;&#20027;&#39064;</a></li>",
                                         "<li><a href='https://github.com/ChineseDron/Tracker/issues/new' target='_blank'>&#25253;&#38169;</a></li>",
                                         "<li><a href='@{shareLink}' target='_blank'>&#25512;&#33616;&#32473;&#22909;&#21451;</a></li>",
-                                        "<li><a href='#' action='about#open'>&#20851;&#20110;...</a></li>",
+                                        "<li><a href='#' action='about#open' onclick='return false;'>&#20851;&#20110;...</a></li>",
                                     "</ul>",
                                 "</li>",
                             "</ul>",
@@ -1078,7 +1081,7 @@ void function( window, factory ){
                             "<li class='tab-content-active'>",
                                 "<div id='code-content' class='relative scrollable'></div>",
                             "</li>",
-                            "<li>",
+                            "<li class='scrollable'>",
                                 "<div id='code-info'></div>",
                             "</li>",
                         "</ul>",
@@ -1105,7 +1108,7 @@ void function( window, factory ){
                     "<dl class='group'>",
                         "<dt>&#24635;&#34892;&#25968;</dt>",
                         "<dd>@{rowsCount}</dd>",
-                    "</dl>",                       
+                    "</dl>",
                     "<dl class='group'>",
                         "<dt>&#21407;&#22987;&#22823;&#23567;</dt>",
                         "<dd>@{size}</dd>",
@@ -1113,7 +1116,15 @@ void function( window, factory ){
                     "<dl class='group'>",
                         "<dt>&#35299;&#21387;&#22823;&#23567;</dt>",
                         "<dd>@{bsize}</dd>",
-                    "</dl>",                       
+                    "</dl>",
+                    "<dl class='group'>",
+                        "<dt>&#21152;&#36733;&#32791;&#26102;</dt>",
+                        "<dd>@{loadConsum}</dd>",
+                    "</dl>",
+                    "<dl class='group'>",
+                        "<dt>&#36816;&#34892;&#32791;&#26102;</dt>",
+                        "<dd>@{runConsum}</dd>",
+                    "</dl>",
                     "<dl class='group'>",
                         "<dt>&#25191;&#34892;&#25253;&#38169;</dt>",
                         "<dd>@{rerror}</dd>",
@@ -1181,7 +1192,7 @@ void function( window, factory ){
                     var span;
 
                     layer = util.makeElement( "div", "position: fixed; padding: 30px; border-radius: 10px; background: rgba(0,0,0,.75); font-size: 20px; line-height: 20px; text-align: center; color: #fff; bottom: 50px; left: 50px; box-shadow: 0 2px 5px #000; z-index: 65535; font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei';" );
-                    layer.innerHTML = "Analysising <span>...</span> <span>(0/0)</span>";
+                    layer.innerHTML = "&#27491;&#22312;&#20998;&#26512;&#32593;&#39029; <span>...</span> <span>(0/0)</span>";
                     body.appendChild( layer );
                     host.documentElement.scrollTop = body.scrollTop = 0;
                     span = layer.getElementsByTagName( "span" );
@@ -1376,7 +1387,7 @@ void function( window, factory ){
 
                             if( pageHtml ){
                                 window.name = "tracker_main";
-                                this.write( "tracker_main", util.format( view.templates.frameset, {
+                                this.write( "tracker_main", util.format( View.templates.frameset, {
                                     url: location.href,
                                     title: document.title, 
                                     charset: document.characterSet || "utf-8"
@@ -1534,7 +1545,7 @@ void function( window, factory ){
                 };
 
                 var codeTemplate = function( code ){
-                    return util.format( view.templates.codeListLine, withWidths( {
+                    return util.format( View.templates.codeListLine, withWidths( {
                         id: code.id,
 
                         index: ++ codeIndex,
@@ -1750,11 +1761,17 @@ void function( window, factory ){
                                 tab.tabEvent.fire( "active", index );
                             };
 
-                            util.forEach( heads, function( head, index ){
-                                Event.add( head, "click", function(){
-                                    if( tab.actived == index )
-                                        return ;
-                                    tab.active( index );
+                            Event.add( tab, "click", function( e ){
+                                var li;
+
+                                li = util.findParent( e.target, "li", this );
+                                
+                                util.forEach( this.childNodes, function( l, index ){
+                                    if( li === l ){
+                                        if( tab.actived == index )
+                                            return ;
+                                        tab.active( index );
+                                    }
                                 } );
                             } );
 
@@ -1816,21 +1833,23 @@ void function( window, factory ){
                         document.getElementById( "code-detail" ).style.display = 
                             id ? "block" : "none";
 
-                        if( actived === 0 ){
-                            this.showCode( id );
-                        }else if( actived == 1 ){
-                            this.showCodeInfo( id );
+                        if( id ){
+                            if( actived === 0 ){
+                                this.showCode( id );
+                            }else if( actived == 1 ){
+                                this.showCodeInfo( id );
+                            }
+
+                            var elementListCodes = document.getElementById( "list-codes" );
+                            var trs = elementListCodes.querySelectorAll( "tr" );
+
+                            util.forEach( trs, function( tr ){
+                                if( tr.getAttribute( "data-code-id" ) == id )
+                                    util.addClass( tr, "info" );
+                                else
+                                    util.removeClass( tr, "info" );
+                            } );
                         }
-
-                        var elementListCodes = document.getElementById( "list-codes" );
-                        var trs = elementListCodes.querySelectorAll( "tr" );
-
-                        util.forEach( trs, function( tr ){
-                            if( tr.getAttribute( "data-code-id" ) == id )
-                                util.addClass( tr, "info" );
-                            else
-                                util.removeClass( tr, "info" );
-                        } );
                     },
 
                     showCode: function( id ){
@@ -1846,11 +1865,11 @@ void function( window, factory ){
                         elementCodeInfo = document.getElementById( "code-info" );
                         code = CodeList.get( id );
 
-                        elementCodeInfo.innerHTML = util.format( view.templates.controllerCodeInfo, {
+                        elementCodeInfo.innerHTML = util.format( View.templates.controllerCodeInfo, {
                             // id: code.id,
                             // index: ++ codeIndex,
                             fileName: code.fullUrl ? 
-                                util.format( view.templates.url, { url: code.fullUrl } ) : 
+                                util.format( View.templates.url, { url: code.fullUrl } ) : 
                                 "&#26469;&#33258;&#39029;&#38754;",
                             type: type( code ),
                             rate: rate( code ),
@@ -1860,7 +1879,9 @@ void function( window, factory ){
                             bsize: size( code.beautifySize ),
                             rerror: yesno( code.runErrors ),
                             serror: yesno( code.syntaxErrors ),
-                            state: state( code.state )
+                            state: state( code.state ),
+                            loadConsum: time( code.loadConsum ),
+                            runConsum: time( code.runConsum )
                         } );
                     },
 
@@ -1876,6 +1897,9 @@ void function( window, factory ){
                         runErrorsEl = document.getElementById( "code-" + code.id + "-runErrors" );
                         runConsumEl = document.getElementById( "code-" + code.id + "-runConsum" );
                         loadConsumEl = document.getElementById( "code-" + code.id + "-loadConsum" );
+
+                        if( !rateEl )
+                            return;
 
                         rateEl.innerHTML = rate( code );
                         arriveRowsCountEl.innerHTML = code.arriveRowsCount;
@@ -1896,20 +1920,20 @@ void function( window, factory ){
                         codeIndex = 0;
 
                         util.delay( function(){
-                            pm.resolve( util.format( view.templates.controllerPage, withWidths( {
+                            pm.resolve( util.format( View.templates.controllerPage, withWidths( {
                                 charset: global.document.characterSet || "utf-8",
                                 cachePhp: "http://www.ucren.com/tracker/cache.php?file=",
 
                                 shareLink: getShareLink,
 
-                                // css: view.templates.controllerCSS,
-                                header: view.templates.controllerTopbar,
+                                // css: View.templates.controllerCSS,
+                                header: View.templates.controllerTopbar,
 
-                                codeList: util.format( view.templates.controllerCodeList, withWidths() ),
-                                codeDetail: view.templates.controllerCodeDetail,
+                                codeList: util.format( View.templates.controllerCodeList, withWidths() ),
+                                codeDetail: View.templates.controllerCodeDetail,
 
-                                dialogAbout: view.templates.controllerDialogAbout,
-                                globalLoading: view.templates.controllerGlobalLoading,
+                                dialogAbout: View.templates.controllerDialogAbout,
+                                globalLoading: View.templates.controllerGlobalLoading,
 
                                 version: version,
                                 uid: host.tracker_uid
@@ -1920,43 +1944,15 @@ void function( window, factory ){
 
                     eventBuilder: function(){
                         var me = this;
-                        
-                        var viewCodeLeftPadding = 222;
-                        var topNavbarHeight = 42;
-                        var codeListHeadHeight = 36;
-                        var codeDetailToolbarHeight = 42;
 
                         var elementListCodes = document.getElementById( "list-codes" );
                         var elementCodeDetail = document.getElementById( "code-detail" );
                         var elementCodeToolbarInner = document.querySelector( ".code-toolbar-inner" );
                         var elementCodeDetailHead = document.getElementById( "code-detail-head" );
-                        var elementCodeDetailBody = document.getElementById( "code-detail-body" );
                         var elementCodeContent = document.getElementById( "code-content" );
-                        // var elementCodeInfo = document.getElementById( "code-info" );
 
                         var tr, focusInList;
                         var tabDescRegx = /tab-desc-(\d+)/;
-
-                        var resize = function(){
-                            var width, height, pageHeight;
-
-                            width = document.body.clientWidth;
-                            height = document.body.clientHeight;
-                            pageHeight = height - topNavbarHeight;
-                            
-                            elementListCodes.style.width = width + "px";
-                            elementListCodes.style.height = pageHeight - codeListHeadHeight + "px";
-
-                            elementCodeDetail.style.width = width - viewCodeLeftPadding + "px";
-                            elementCodeDetail.style.height = pageHeight + "px";
-
-                            elementCodeDetailBody.style.width = width - viewCodeLeftPadding + "px";
-                            elementCodeDetailBody.style.height = pageHeight - 
-                                codeDetailToolbarHeight + "px";
-                        };
-
-                        resize();
-                        Event.add( window, "resize", resize );
 
                         Event.add( elementListCodes, {
                             click: function( e ){
@@ -1965,7 +1961,7 @@ void function( window, factory ){
                                     if( codeId = tr.getAttribute( "data-code-id" ) )
                                         focusInList = true,
                                         codeId == currentSelectedCode ||
-                                            view.ControlPanel.showCodeDetail( codeId );
+                                            View.ControlPanel.showCodeDetail( codeId );
                             }
                         } );
 
@@ -2016,23 +2012,19 @@ void function( window, factory ){
 
                                             selectId = tr.getAttribute( "data-code-id" );
                                             if( currentSelectedCode != selectId )
-                                                view.ControlPanel.showCodeDetail( selectId );
+                                                View.ControlPanel.showCodeDetail( selectId );
 
                                             e.preventDefault && e.preventDefault();
                                         }
                                     }
                                 }
-                            },
-
-                            // mousewheel: function( e ){
-                            //     e.preventDefault && e.preventDefault();
-                            // }
+                            }
                         } );
 
                         if( !actions[ "code#close" ] )
                             actions[ "code#close" ] = function( e ){
                                 focusInList = true;
-                                view.ControlPanel.showCodeDetail( false );
+                                View.ControlPanel.showCodeDetail( false );
                             };
 
                         if( !actions[ "about#open" ] )
@@ -2040,7 +2032,7 @@ void function( window, factory ){
                                 document.getElementById( "dialog-about" ).style.display = "block";  
                             };
 
-                        if( view.ControlFrame.getMode() == "window" )
+                        if( View.ControlFrame.getMode() == "window" )
                             document.getElementById( "window-mode-trigger" ).innerHTML =
                                 "&#24182;&#21015;&#27169;&#24335;";
 
@@ -2059,7 +2051,7 @@ void function( window, factory ){
                         elementCodeDetailHead.tabEvent.on( "active", function( index ){
                             if( index == 1 && this.currentShown != currentSelectedCode ){
                                 this.currentShown = currentSelectedCode;
-                                view.ControlPanel.showCodeInfo( currentSelectedCode );
+                                View.ControlPanel.showCodeInfo( currentSelectedCode );
                             }
 
                             var tabDescs = elementCodeToolbarInner.querySelectorAll( ".tab-desc" );
@@ -2106,7 +2098,7 @@ void function( window, factory ){
                 "[ User ]", tt, uid,
                 "[ Codes ]", codeCount,
                 "[ Errors ]", errors.join( " " ),
-                "[ Controller ]", view.ControlFrame.state, panelMode,
+                "[ Controller ]", View.ControlFrame.state, panelMode,
                 "[ AnalysisTime ]", analysisTime,
                 "[ Stay ]", ( ( util.time() - startTime ) / 1000 ).toFixed( 1 ) + "s",
                 "[ Version ]", version,
@@ -2204,7 +2196,7 @@ void function( window, factory ){
     };
 
     var StatusPool = host.StatusPool = function(){
-        var arrivedSnippetCache, snippetToCodeCache, beginOfLineSnippetCache;
+        var arrivedSnippetCache, snippetToCodeCache, beginOfLineSnippetCache, code, i, id, l;
 
         arrivedSnippetCache = {}; // 已到达的代码碎片池（所有代码）
         snippetToCodeCache = {}; // 代码碎片到代码的映射池
@@ -2212,7 +2204,6 @@ void function( window, factory ){
 
         return {
             arrivedSnippetPut: function( id ){
-                var code;
                 if( !arrivedSnippetCache[ id ] ){
                     arrivedSnippetCache[ id ] = 1;
 
@@ -2237,7 +2228,7 @@ void function( window, factory ){
             },
 
             beginOfLineSnippetPut: function( /* id, id, ... */ ){
-                for( var i = 0, id, l = arguments.length; i < l; i ++ )
+                for( i = 0, l = arguments.length; i < l; i ++ )
                     if( !beginOfLineSnippetCache[ id = arguments[ i ] ] )
                         beginOfLineSnippetCache[ id ] = 1;
             },
@@ -2249,7 +2240,8 @@ void function( window, factory ){
     }();
 
     var Decorate = host.Decorate = function( window, document ){
-        var Element, appendChild, insertBefore, getAttribute, check, checklist, scriptElements;
+        var Element, appendChild, insertBefore, getAttribute, check, checklist, scriptElements, i, l;
+            // __tracker__Cache, a;
 
         Element = window.Element.prototype;
         appendChild = Element.appendChild;
@@ -2298,7 +2290,7 @@ void function( window, factory ){
                         node.src = url;
                     } );
 
-                    view.ControlPanel.addCode( code );
+                    View.ControlPanel.addCode( code );
                 }, function(){
                     code = new Code( url );
                     code.setType( "append" );
@@ -2309,7 +2301,7 @@ void function( window, factory ){
                         fn.apply( me, args );
                     } );
                     
-                    view.ControlPanel.addCode( code );
+                    View.ControlPanel.addCode( code );
                 } );
 
                 return node;
@@ -2352,9 +2344,20 @@ void function( window, factory ){
             // check( object, "getAttribute" );
         } );
 
+        // __tracker__Cache = {};
+
         window.__tracker__ = function( id /* , id, id, ... */ ){
-            for( var i = 0, l = arguments.length; i < l; i ++ )
-                StatusPool.arrivedSnippetPut( arguments[ i ] );
+            // a = join.call( arguments, "," );
+            // if( __tracker__Cache[ a ] )
+            //     return ;
+            // __tracker__Cache[ a ] = 1;
+            // for( i = 0, l = arguments.length; i < l; i ++ )
+            //     StatusPool.arrivedSnippetPut( arguments[ i ] );
+            i = 0;
+            l = arguments.length;
+            do{
+                StatusPool.arrivedSnippetPut( arguments[ i ++ ] );
+            }while( i < l );
         };
 
         window.__trackerError__ = function( codeId, msg ){
@@ -2405,7 +2408,7 @@ void function( window, factory ){
         };
     };
 
-    var Tracker = function(){
+    var Tracker = function( host ){
         var cmd = function( cmd ){
             var n = arguments[1];
             switch( cmd ){
@@ -2420,7 +2423,7 @@ void function( window, factory ){
         var page = function( fn ){
             var win, doc;
 
-            win = view.ControlFrame.getWindow( "tracker_page" );
+            win = View.ControlFrame.getWindow( "tracker_page" );
             doc = win.document;
 
             return fn( win, doc );
@@ -2431,7 +2434,70 @@ void function( window, factory ){
             return "undefined";
         };
 
-        return { cmd: cmd, page: page };
+        host.cmd = cmd;
+        host.page = page;
+
+        return host;
+    }( host );
+
+    var Plugins = Tracker.Plugins = function(){
+        return {
+            addOn: function( name, fn ){
+                fn.call( this, CodeList, View );
+            },
+
+            addStyle: function( text ){
+                this.onControllerLoad( function(){
+                    var document, style;
+
+                    document = View.ControlFrame.getWindow( "tracker_controller" ).document;
+                    style = document.createElement( "style" );
+                    style.type = "text/css";
+                    style.appendChild( document.createTextNode( text ) );
+
+                    document.head.appendChild( style );
+                } );
+            },
+
+            addPanel: function( title, panelDefine ){
+                this.onControllerLoad( function(){
+                    var window, document, topNav, panels, titleEl, panelEl;
+
+                    window = View.ControlFrame.getWindow( "tracker_controller" );
+                    document = window.document;
+                    topNav = document.getElementById( "top-nav" );
+                    panels = document.getElementById( topNav.getAttribute( "data-target" ) );
+
+                    titleEl = document.createElement( "li" );
+                    titleEl.className = "relative";
+                    titleEl.innerHTML = "<a href='' onclick='return false'>" + title + "</a>";
+                    topNav.appendChild( titleEl );
+
+                    panelEl = document.createElement( "li" );
+                    panels.appendChild( panelEl );
+
+                    panelDefine.call( panelEl, window, document );
+                } );
+            },
+
+            setup: function( src ){
+                var script;
+
+                script = host.createElement( "script" );
+                script.type = "text/javascript";
+                script.src = src;
+
+                host.head.appendChild( script );
+            },
+
+            // privates
+            onControllerLoad: function( fn ){
+                if( controllerOnLoad.fired )
+                    controllerOnLoad( fn );
+
+                View.ControlFrame.on( "controllerLoad", fn );
+            }
+        }
     }();
 
     var pageBaseUrl = path.getBase( host );
@@ -2439,27 +2505,19 @@ void function( window, factory ){
 
     // business logic
     void function(){
-        var currentCodeId, controllerOnLoad, updateInterval, checkCodes, hookDebuggingCode, codes,
-            arriveIdWorker;
+        var currentCodeId, updateInterval, hookDebuggingCode, codes, 
+            pluginsUrlBase;
 
-        controllerOnLoad = promise.fuze()
+        controllerOnLoad = promise.fuze();
         host.TrackerGlobalEvent = Event.bind();
-
-        checkCodes = function(){
-            if( !codes )
-                return ;
-            util.forEach( codes, function( code ){
-                if( !code.lastUpdate || code.lastUpdate < code.lastModified )
-                    view.ControlPanel.updateCode( code );
-            } );
-        };
+        pluginsUrlBase = "http://www.ucren.com/tracker/cache.php?file=./plugins/";
 
         hookDebuggingCode = function( content, code ){
             return "__trackerScriptStart__('" + code.id + "');" + content + 
                 "; __trackerScriptEnd__('" + code.id + "');";
         };
 
-        view.ControlFrame.pageBuilder( function( html ){
+        View.ControlFrame.pageBuilder( function( html ){
             var pm = new promise,
                 charset = document.characterSet,
                 allScriptTagRegx = /(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi,
@@ -2479,7 +2537,7 @@ void function( window, factory ){
                         pm = new promise;
 
                         if( srcPropertyRegx.test( openTag ) ){ // is outer script
-                            view.Loading.addCount();
+                            View.Loading.addCount();
                             pm.resolve( raw );
                             return pm;
                         }
@@ -2492,7 +2550,7 @@ void function( window, factory ){
                         }
 
                         // embed script
-                        view.Loading.addCount();
+                        View.Loading.addCount();
 
                         code = new Code( null, content );
                         code.loadConsum = 0;
@@ -2502,7 +2560,7 @@ void function( window, factory ){
                         code.onReady( function(){
                             pm.resolve( openTag + hookDebuggingCode( code.executiveCode, code ) + 
                                 closeTag );
-                            view.Loading.addProgress();
+                            View.Loading.addProgress();
                         } );
 
                         return pm;
@@ -2525,7 +2583,7 @@ void function( window, factory ){
                                 CodeList.add( code );
 
                                 code.onReady( function(){
-                                    view.Loading.addProgress();
+                                    View.Loading.addProgress();
                                     pm.resolve( openTag + 
                                         hookDebuggingCode( code.executiveCode, code ) + closeTag );
                                 } );
@@ -2537,7 +2595,7 @@ void function( window, factory ){
                                 CodeList.add( code );
 
                                 code.onReady( function(){
-                                    view.Loading.addProgress();
+                                    View.Loading.addProgress();
                                     pm.resolve( raw );
                                 } );
                             } );
@@ -2545,7 +2603,7 @@ void function( window, factory ){
                             return pm;
                         }
                     ).then( function( html ){
-                        view.Loading.hide();
+                        View.Loading.hide();
                         util.delay( function(){
                             CodeList.sort();
                             pm.resolve( html.replace( firstTagRegx, "$1" + pageStartingOf ) );
@@ -2560,15 +2618,15 @@ void function( window, factory ){
                     location.assign( location.href );  
                 };
 
-                view.Loading.text( message ).then( refresh );
+                View.Loading.text( message ).then( refresh );
             } );
 
             return pm;
         } );
 
-        view.ControlFrame.controllerBuilder( view.ControlPanel.htmlBuilder );
+        View.ControlFrame.controllerBuilder( View.ControlPanel.htmlBuilder );
 
-        view.ControlFrame.on( "pageLoad", function( window, document ){
+        View.ControlFrame.on( "pageLoad", function( window, document ){
             var base, head;
 
             // TODO: 如果页面本身已有 base 标签？
@@ -2580,51 +2638,63 @@ void function( window, factory ){
             Event.add( window, "unload", function(){
                 location.assign( location.href );
             } );
-
-            global.Tracker = Tracker;
         } );
 
-        view.ControlFrame.on( "controllerLoad", function( window, document ){
-            Feedback.setAnalysisEnd();
-
-            view.ControlPanel.bindWindow( window );
-            view.ControlPanel.addCode( codes = CodeList.list() );
-            view.ControlPanel.eventBuilder();
-
-            // Feedback.start();
+        View.ControlFrame.on( "controllerLoad", function( window, document ){
+            View.ControlPanel.bindWindow( window );
+            View.ControlPanel.addCode( codes = CodeList.list() );
+            View.ControlPanel.eventBuilder();
+            controllerOnLoad.fire( window, document );
 
             if( currentCodeId )
-                view.ControlPanel.showCodeDetail( currentCodeId );
-
-            controllerOnLoad.fire();
-
-            updateInterval = setInterval( checkCodes, 3e3 );
-
-            var waitTime = document.getElementById( "waitTime" );
-
-            util.onCpuFree( function(){
-                document.getElementById( "loading" ).style.display = "none";
-            }, function( t ){
-                waitTime.innerHTML = "(" + (t / 1000).toFixed( 3 ) + "s)";
-            } );
+                View.ControlPanel.showCodeDetail( currentCodeId );
         } );
 
-        view.ControlFrame.on( "hide", function(){
+        View.ControlFrame.on( "hide", function(){
             clearInterval( updateInterval );
         } );
 
-        view.ControlPanel.actions( {
-            "frame#close": util.bind( view.ControlFrame.hide, view.ControlFrame ),
-            "frame#toggle": util.bind( view.ControlFrame.toggleMode, view.ControlFrame )
+        View.ControlPanel.actions( {
+            "frame#close": util.bind( View.ControlFrame.hide, View.ControlFrame ),
+            "frame#toggle": util.bind( View.ControlFrame.toggleMode, View.ControlFrame )
         } );
 
         host.TrackerGlobalEvent.on( "TrackerJSLoad", function(){
-            controllerOnLoad( util.bind( view.ControlFrame.show, view.ControlFrame ) );
+            controllerOnLoad( util.bind( View.ControlFrame.show, View.ControlFrame ) );
         } );
 
         restorePageEnvironments();
-        view.Loading.show();
-        view.ControlFrame.createEmbed();
+        View.Loading.show();
+        View.ControlFrame.createEmbed();
+
+        controllerOnLoad( function( window, document ){
+            var waitTime, loadingEl;
+
+            Feedback.setAnalysisEnd();
+
+            waitTime = document.getElementById( "waitTime" );
+            loadingEl = document.getElementById( "loading" );
+            loadingEl.style.display = "block";
+            
+            util.onCpuFree( function(){
+                loadingEl.style.display = "none";
+            }, function( t ){
+                waitTime.innerHTML = "(" + (t / 1000).toFixed( 3 ) + "s)";
+            } );
+
+            updateInterval = setInterval( function(){
+                if( !codes )
+                    return ;
+                util.forEach( codes, function( code ){
+                    if( !code.lastUpdate || code.lastUpdate < code.lastModified )
+                        View.ControlPanel.updateCode( code );
+                } );
+            }, 3e3 );
+        } );
+
+        // setTimeout( function(){
+        //     Plugins.setup( pluginsUrlBase + "general.js&version=20130421" + Math.random() );
+        // }, 100 );
     }();
 } );
 
@@ -6777,14 +6847,15 @@ void function( window, factory ){
             sourceMap;
 
         var _slice = [].slice, _push = [].push, _join = [].join, guid, currentCode, 
-            snippetsIdSet;
-
+            trackerDelimiterRegx;
 
         var StatusPool = document.StatusPool;
 
         // NOTE: 以下的代码新增了 idBuffer 和 entrustedTraceId 的设计
         // idBuffer: 上一个语法环境里预置的 id 数组，在本语法环增中会追加新的代码片断 id 到其后，一般统一在外层语法环境里去做 trace 跟踪
         // entrustedTraceId: 上一个语法环境里预置的 id 数组，用于委托到本语法环境里做 trace 跟踪（正好与上面相反）
+
+        trackerDelimiterRegx = /\{<\}.*?\{>\}/g;
 
         // NOTE: 用于生成代码关键 token 的唯一标识数字
         guid = function(){
@@ -6970,8 +7041,8 @@ void function( window, factory ){
         }
 
         function wrapCodeFragmentHtml( fragment, id ){
-            if( !snippetsIdSet[ id ] )
-                snippetsIdSet[ id ] = 1;
+            // if( !snippetsIdSet[ id ] )
+            //     snippetsIdSet[ id ] = 1;
 
             StatusPool.snippetToCodePut( id, currentCode );
 
@@ -8000,7 +8071,8 @@ void function( window, factory ){
         }
 
         function generateStatement( stmt, option ) {
-            var i, len, result, node, allowIn, fragment, semicolon, idBuffer, entrustedTraceId;
+            var i, len, result, node, allowIn, fragment, semicolon, idBuffer, entrustedTraceId, id,
+                tid, resultString;
 
             allowIn = true;
             semicolon = ';';
@@ -8016,32 +8088,30 @@ void function( window, factory ){
 
             switch (stmt.type) {
             case Syntax.BlockStatement:
-                void function( id ){
-                    id = guid( 2, entrustedTraceId );
+                id = guid( 2, entrustedTraceId );
 
-                    result = [
-                        wrapCodeFragmentHtml( '{', id[ 0 ] ),
-                        injectCodeFragmentTrace( id ),
-                        newline,
-                    ];
+                result = [
+                    wrapCodeFragmentHtml( '{', id[ 0 ] ),
+                    injectCodeFragmentTrace( id ),
+                    newline,
+                ];
 
-                    withIndent(function (indent) {
-                        for (i = 0, len = stmt.body.length; i < len; i += 1) {
-                            fragment = addIndent(generateStatement(stmt.body[i], {semicolonOptional: i === len - 1}));
-                            result.push(fragment);
-                            if (!endsWithLineTerminator(toSourceNode(fragment).toString())) {
-                                result.push(newline);
-                            }
+                withIndent(function (indent) {
+                    for (i = 0, len = stmt.body.length; i < len; i += 1) {
+                        fragment = addIndent(generateStatement(stmt.body[i], {semicolonOptional: i === len - 1}));
+                        result.push(fragment);
+                        if (!endsWithLineTerminator(toSourceNode(fragment).toString())) {
+                            result.push(newline);
                         }
-                    });
+                    }
+                });
 
-                    result.push(addIndent(
-                        wrapCodeFragmentHtml( '}', id[ 1 ] )
-                    ));
+                result.push(addIndent(
+                    wrapCodeFragmentHtml( '}', id[ 1 ] )
+                ));
 
-                    if( idBuffer )
-                        idBuffer.push( id[0], id[1] );
-                }();
+                if( idBuffer )
+                    idBuffer.push( id[0], id[1] );
 
                 break;
 
@@ -8050,14 +8120,12 @@ void function( window, factory ){
                     // NOTE: 居然可以跟 label，这种情况暂时不考虑了
                     result = 'break ' + stmt.label.name + semicolon;
                 } else {
-                    void function( id ){
-                        id = guid( 1 );
-                        result = [
-                            injectCodeFragmentTrace( id ),
-                            wrapCodeFragmentHtml( 'break', id[ 0 ] ),
-                            semicolon
-                        ];
-                    }();
+                    id = guid( 1 );
+                    result = [
+                        injectCodeFragmentTrace( id ),
+                        wrapCodeFragmentHtml( 'break', id[ 0 ] ),
+                        semicolon
+                    ];
                 }
                 break;
 
@@ -8066,68 +8134,61 @@ void function( window, factory ){
                     // TODO: break/continue label 需要处理，否则无法高亮
                     result = 'continue ' + stmt.label.name + semicolon;
                 } else {
-                    void function( id ){
-                        id = guid( 1 );
-                        result = [
-                            injectCodeFragmentTrace( id ),
-                            wrapCodeFragmentHtml( 'continue', id[ 0 ] ),
-                            semicolon
-                        ];
-                    }();
+                    id = guid( 1 );
+                    result = [
+                        injectCodeFragmentTrace( id ),
+                        wrapCodeFragmentHtml( 'continue', id[ 0 ] ),
+                        semicolon
+                    ];
                 }
                 break;
 
             case Syntax.DoWhileStatement:
                 // Because `do 42 while (cond)` is Syntax Error. We need semicolon.
-                void function( id ){
-                    id = guid( 4 );
+                id = guid( 4 );
+                result = [
+                    wrapCodeFragmentHtml( 'do', id[ 0 ] ),
+                    maybeBlock( stmt.body )
+                ];
+            
+                result = maybeBlockSuffix(stmt.body, result);
+                result = join(result, [
+                    wrapCodeFragmentHtml( 'while', id[ 1 ] ),
+                    space,
+                    wrapCodeFragmentHtml( '(', id[ 2 ] ),
+                    space,
+                    generateExpression(stmt.test, {
+                        precedence: Precedence.Sequence,
+                        allowIn: true,
+                        allowCall: true,
+                        idBuffer: id
+                    }),
+                    space,
+                    wrapCodeFragmentHtml( ')', id[ 3 ] ),
+                    semicolon,
+                    injectCodeFragmentTrace( id )
+                ]);
+                break;
+
+            case Syntax.CatchClause:
+                id = guid( 3 );
+                withIndent(function (indent) {
                     result = [
-                        wrapCodeFragmentHtml( 'do', id[ 0 ] ),
-                        maybeBlock( stmt.body )
-                    ];
-                
-                    result = maybeBlockSuffix(stmt.body, result);
-                    result = join(result, [
-                        wrapCodeFragmentHtml( 'while', id[ 1 ] ),
+                        wrapCodeFragmentHtml( 'catch', id[ 0 ] ),
                         space,
-                        wrapCodeFragmentHtml( '(', id[ 2 ] ),
+                        wrapCodeFragmentHtml( '(', id[ 1 ] ),
                         space,
-                        generateExpression(stmt.test, {
+                        generateExpression( stmt.param, {
                             precedence: Precedence.Sequence,
                             allowIn: true,
                             allowCall: true,
                             idBuffer: id
-                        }),
+                        } ),
                         space,
-                        wrapCodeFragmentHtml( ')', id[ 3 ] ),
-                        semicolon,
-                        injectCodeFragmentTrace( id )
-                    ]);
-
-                }();
-                break;
-
-            case Syntax.CatchClause:
-                void function( id ){
-                    id = guid( 3 );
-                    withIndent(function (indent) {
-                        result = [
-                            wrapCodeFragmentHtml( 'catch', id[ 0 ] ),
-                            space,
-                            wrapCodeFragmentHtml( '(', id[ 1 ] ),
-                            space,
-                            generateExpression( stmt.param, {
-                                precedence: Precedence.Sequence,
-                                allowIn: true,
-                                allowCall: true,
-                                idBuffer: id
-                            } ),
-                            space,
-                            wrapCodeFragmentHtml( ')', id[ 2 ] )
-                        ];
-                    });
-                    result.push( maybeBlock( stmt.body, null, id ) );
-                }();
+                        wrapCodeFragmentHtml( ')', id[ 2 ] )
+                    ];
+                });
+                result.push( maybeBlock( stmt.body, null, id ) );
                 break;
 
             case Syntax.DebuggerStatement:
@@ -8139,128 +8200,119 @@ void function( window, factory ){
                 break;
 
             case Syntax.ExpressionStatement:
-                var trackerDelimiterRegx = /\{<\}.*?\{>\}/g;
-                void function( id, tid, resultString ){
-                    id = [], tid;
+                id = [];
+                result = [generateExpression(stmt.expression, {
+                    precedence: Precedence.Sequence,
+                    allowIn: true,
+                    allowCall: true,
+                    fromStatement: true,
+                    idBuffer: id
+                })];
 
-                    result = [generateExpression(stmt.expression, {
-                        precedence: Precedence.Sequence,
-                        allowIn: true,
-                        allowCall: true,
-                        fromStatement: true,
-                        idBuffer: id
-                    })];
-
-                    // 12.4 '{', 'function' is not allowed in this position.
-                    // wrap expression with parentheses
-                    resultString = result.toString().replace( trackerDelimiterRegx, "" );
-                    if ( resultString.charAt(0) === '{' || 
-                        ( resultString.slice(0, 8) === 'function' && " (".indexOf( resultString.charAt(8) ) >= 0 ) ) {
-                        _push.apply( id, tid = guid(2) );
-                        result = [ 
-                            wrapCodeFragmentHtml( '(', tid[0] ), 
-                            result, 
-                            wrapCodeFragmentHtml( ')', tid[1] ), 
-                            semicolon,
-                            injectCodeFragmentTrace( id )
-                        ];
-                    } else {
-                        result.push(
-                            semicolon,
-                            injectCodeFragmentTrace( id )
-                        );
-                    }
-                }();
+                // 12.4 '{', 'function' is not allowed in this position.
+                // wrap expression with parentheses
+                resultString = result.toString().replace( trackerDelimiterRegx, "" );
+                if ( resultString.charAt(0) === '{' || 
+                    ( resultString.slice(0, 8) === 'function' && " (".indexOf( resultString.charAt(8) ) >= 0 ) ) {
+                    _push.apply( id, tid = guid(2) );
+                    result = [ 
+                        wrapCodeFragmentHtml( '(', tid[0] ), 
+                        result, 
+                        wrapCodeFragmentHtml( ')', tid[1] ), 
+                        semicolon,
+                        injectCodeFragmentTrace( id )
+                    ];
+                } else {
+                    result.push(
+                        semicolon,
+                        injectCodeFragmentTrace( id )
+                    );
+                }
 
                 break;
 
             case Syntax.VariableDeclarator:
-                void function( id ){
-                    if ( stmt.init ){
-                        id = guid( 2 );
+                if ( stmt.init ){
+                    id = guid( 2 );
 
-                        idBuffer && _push.apply( idBuffer, id );
-                        result = [
-                            wrapCodeFragmentHtml( stmt.id.name, id[ 0 ] ),
-                            space,
-                            wrapCodeFragmentHtml( '=', id[ 1 ] ),
-                            space,
-                            generateExpression( stmt.init, {
-                                precedence: Precedence.Assignment,
-                                allowIn: allowIn,
-                                allowCall: true,
-                                idBuffer: idBuffer
-                            } )
-                        ];
-                    } else {
-                        id = guid();
-                        idBuffer && idBuffer.push( id );
-                        result = wrapCodeFragmentHtml( stmt.id.name, id );
-                    }
-                }();
+                    idBuffer && _push.apply( idBuffer, id );
+                    result = [
+                        wrapCodeFragmentHtml( stmt.id.name, id[ 0 ] ),
+                        space,
+                        wrapCodeFragmentHtml( '=', id[ 1 ] ),
+                        space,
+                        generateExpression( stmt.init, {
+                            precedence: Precedence.Assignment,
+                            allowIn: allowIn,
+                            allowCall: true,
+                            idBuffer: idBuffer
+                        } )
+                    ];
+                } else {
+                    id = guid();
+                    idBuffer && idBuffer.push( id );
+                    result = wrapCodeFragmentHtml( stmt.id.name, id );
+                }
                 break;
 
             case Syntax.VariableDeclaration:
+                id = [];
+                id.push( tid = guid() );
 
-                void function( id, tid ){
-                    id = [];
-                    id.push( tid = guid() );
+                result = [
+                    wrapCodeFragmentHtml( stmt.kind, tid )
+                ];
 
-                    result = [
-                        wrapCodeFragmentHtml( stmt.kind, tid )
-                    ];
+                // special path for
+                // var x = function () {
+                // };
+                if ( stmt.declarations.length === 1 && stmt.declarations[0].init &&
+                        stmt.declarations[0].init.type === Syntax.FunctionExpression ) {
+                    result.push( ' ', generateStatement( stmt.declarations[0], {
+                        allowIn: allowIn,
+                        idBuffer: id
+                    } ) );
+                } else {
+                    // VariableDeclarator is typed as Statement,
+                    // but joined with comma (not LineTerminator).
+                    // So if comment is attached to target node, we should specialize.
+                    withIndent(function (indent) {
+                        node = stmt.declarations[0];
 
-                    // special path for
-                    // var x = function () {
-                    // };
-                    if ( stmt.declarations.length === 1 && stmt.declarations[0].init &&
-                            stmt.declarations[0].init.type === Syntax.FunctionExpression ) {
-                        result.push( ' ', generateStatement( stmt.declarations[0], {
-                            allowIn: allowIn,
-                            idBuffer: id
-                        } ) );
-                    } else {
-                        // VariableDeclarator is typed as Statement,
-                        // but joined with comma (not LineTerminator).
-                        // So if comment is attached to target node, we should specialize.
-                        withIndent(function (indent) {
-                            node = stmt.declarations[0];
+                        if ( extra.comment && node.leadingComments ) {
+                            result.push( '\n', addIndent( generateStatement( node, {
+                                allowIn: allowIn
+                            } ) ) );
+                        } else {
+                            result.push( ' ', generateStatement(node, {
+                                allowIn: allowIn,
+                                idBuffer: id
+                            } ) );
+                        }
 
-                            if ( extra.comment && node.leadingComments ) {
-                                result.push( '\n', addIndent( generateStatement( node, {
-                                    allowIn: allowIn
+                        for ( i = 1, len = stmt.declarations.length; i < len; i += 1 ) {
+                            node = stmt.declarations[i];
+                            if (extra.comment && node.leadingComments) {
+                                result.push( ',' + newline, addIndent( generateStatement( node, {
+                                    allowIn: allowIn,
+                                    idBuffer: id
                                 } ) ) );
                             } else {
-                                result.push( ' ', generateStatement(node, {
+                                result.push( ',' + space, generateStatement( node, {
                                     allowIn: allowIn,
                                     idBuffer: id
                                 } ) );
                             }
+                        }
+                        
+                    });
+                }
 
-                            for ( i = 1, len = stmt.declarations.length; i < len; i += 1 ) {
-                                node = stmt.declarations[i];
-                                if (extra.comment && node.leadingComments) {
-                                    result.push( ',' + newline, addIndent( generateStatement( node, {
-                                        allowIn: allowIn,
-                                        idBuffer: id
-                                    } ) ) );
-                                } else {
-                                    result.push( ',' + space, generateStatement( node, {
-                                        allowIn: allowIn,
-                                        idBuffer: id
-                                    } ) );
-                                }
-                            }
-                            
-                        });
-                    }
-
-                    result.push(
-                        injectAssistedCode( ", __trackerTempVariable__ = " ),
-                        injectCodeFragmentTraceWithReturn( id ),
-                        semicolon
-                    );
-                }();
+                result.push(
+                    injectAssistedCode( ", __trackerTempVariable__ = " ),
+                    injectCodeFragmentTraceWithReturn( id ),
+                    semicolon
+                );
 
                 break;
 
@@ -8269,32 +8321,28 @@ void function( window, factory ){
                 // 应该改为 idBuffer 的实现
                 // 但由于 throw 完成之后，代码会中断，没有机会执行 trace，暂时也无比较好的办法（用 try..finally ? ）
                 // 参考 ReturnStatement 中加 try 的实现
-                void function( id ){
-                    id = guid( 2 );
-                    result = [
-                        injectCodeFragmentTrace( id ),
-                        join(
-                            wrapCodeFragmentHtml( 'throw', id[ 0 ] ),
-                            wrapCodeFragmentHtml( generateExpression(stmt.argument, {
-                                precedence: Precedence.Sequence,
-                                allowIn: true,
-                                allowCall: true
-                            }), id[ 1 ] )
-                        ),
-                        semicolon
-                    ];
-                }();
+                id = guid( 2 );
+                result = [
+                    injectCodeFragmentTrace( id ),
+                    join(
+                        wrapCodeFragmentHtml( 'throw', id[ 0 ] ),
+                        wrapCodeFragmentHtml( generateExpression(stmt.argument, {
+                            precedence: Precedence.Sequence,
+                            allowIn: true,
+                            allowCall: true
+                        }), id[ 1 ] )
+                    ),
+                    semicolon
+                ];
                 break;
 
             case Syntax.TryStatement:
-                void function( id ){
-                    id = guid( 1 );
+                id = guid( 1 );
 
-                    result = [
-                        wrapCodeFragmentHtml( 'try', id[ 0 ] ), 
-                        maybeBlock( stmt.block, null, id )
-                    ];
-                }();
+                result = [
+                    wrapCodeFragmentHtml( 'try', id[ 0 ] ), 
+                    maybeBlock( stmt.block, null, id )
+                ];
 
                 result = maybeBlockSuffix(stmt.block, result);
 
@@ -8305,89 +8353,81 @@ void function( window, factory ){
                     }
                 }
 
-                void function( id ){
-                    id = guid( 1 );
+                id = guid( 1 );
 
-                    if (stmt.finalizer) {
-                        result = join(result, [
-                            wrapCodeFragmentHtml( 'finally', id[ 0 ] ), 
-                            maybeBlock( stmt.finalizer, null, id )
-                        ]);
-                    }
-                }();
+                if (stmt.finalizer) {
+                    result = join(result, [
+                        wrapCodeFragmentHtml( 'finally', id[ 0 ] ), 
+                        maybeBlock( stmt.finalizer, null, id )
+                    ]);
+                }
 
                 break;
 
             case Syntax.SwitchStatement:
-                void function( id ){
-                    id = guid( 5 );
+                id = guid( 5 );
 
-                    withIndent(function (indent) {
-                        result = [
-                            wrapCodeFragmentHtml( 'switch', id[ 0 ]),
-                            space,
-                            wrapCodeFragmentHtml( '(', id[ 1 ] ),
-                            space,
-                            generateExpression(stmt.discriminant, {
-                                precedence: Precedence.Sequence,
-                                allowIn: true,
-                                allowCall: true,
-                                idBuffer: id
-                            }),
-                            space,
-                            wrapCodeFragmentHtml( ')', id[ 2 ] ),
-                            space,
-                            wrapCodeFragmentHtml( '{', id[ 3 ] ), 
-                            newline
-                        ];
-                    });
+                withIndent(function (indent) {
+                    result = [
+                        wrapCodeFragmentHtml( 'switch', id[ 0 ]),
+                        space,
+                        wrapCodeFragmentHtml( '(', id[ 1 ] ),
+                        space,
+                        generateExpression(stmt.discriminant, {
+                            precedence: Precedence.Sequence,
+                            allowIn: true,
+                            allowCall: true,
+                            idBuffer: id
+                        }),
+                        space,
+                        wrapCodeFragmentHtml( ')', id[ 2 ] ),
+                        space,
+                        wrapCodeFragmentHtml( '{', id[ 3 ] ), 
+                        newline
+                    ];
+                });
 
-                    if (stmt.cases) {
-                        for (i = 0, len = stmt.cases.length; i < len; i += 1) {
-                            fragment = addIndent(generateStatement(stmt.cases[i], {semicolonOptional: i === len - 1}));
-                            result.push(fragment);
-                            if (!endsWithLineTerminator(toSourceNode(fragment).toString())) {
-                                result.push(newline);
-                            }
+                if (stmt.cases) {
+                    for (i = 0, len = stmt.cases.length; i < len; i += 1) {
+                        fragment = addIndent(generateStatement(stmt.cases[i], {semicolonOptional: i === len - 1}));
+                        result.push(fragment);
+                        if (!endsWithLineTerminator(toSourceNode(fragment).toString())) {
+                            result.push(newline);
                         }
                     }
+                }
 
-                    result.push(
-                        addIndent( wrapCodeFragmentHtml( '}', id[ 4 ] ) ),
-                        injectCodeFragmentTrace( id )
-                    );
-                }();
+                result.push(
+                    addIndent( wrapCodeFragmentHtml( '}', id[ 4 ] ) ),
+                    injectCodeFragmentTrace( id )
+                );
 
                 break;
 
             case Syntax.SwitchCase:
                 withIndent(function (indent) {
                     if (stmt.test) {
-                        void function( id ){
-                            id = guid( 1 );
-                            result = [
-                                join(
-                                    wrapCodeFragmentHtml( 'case', id[ 0 ] ), 
-                                    generateExpression(stmt.test, {
-                                        precedence: Precedence.Sequence,
-                                        allowIn: true,
-                                        allowCall: true,
-                                        idBuffer: id
-                                    })
-                                ),
-                                ':',
-                                injectCodeFragmentTrace( id )
-                            ];
-                        }();
+                        id = guid( 1 );
+                        result = [
+                            join(
+                                wrapCodeFragmentHtml( 'case', id[ 0 ] ), 
+                                generateExpression(stmt.test, {
+                                    precedence: Precedence.Sequence,
+                                    allowIn: true,
+                                    allowCall: true,
+                                    idBuffer: id
+                                })
+                            ),
+                            ':',
+                            injectCodeFragmentTrace( id )
+                        ];
                     } else {
-                        void function( id ){
-                            id = guid( 1 );
-                            result = [
-                                wrapCodeFragmentHtml( 'default' ),
-                                ':',
-                                injectCodeFragmentTrace( id )
-                            ];
-                        }();
+                        id = guid( 1 );
+                        result = [
+                            wrapCodeFragmentHtml( 'default' ),
+                            ':',
+                            injectCodeFragmentTrace( id )
+                        ];
                     }
 
                     i = 0;
@@ -8413,189 +8453,177 @@ void function( window, factory ){
                 break;
 
             case Syntax.IfStatement:
-                void function( id ){
-                    id = guid( 3, entrustedTraceId );
+                id = guid( 3, entrustedTraceId );
 
-                    withIndent(function (indent) {
-                        result = [
-                            // NOTE: 加了 wrap
-                            wrapCodeFragmentHtml( 'if', id[ 0 ] ),
-                            space,
-                            wrapCodeFragmentHtml( '(', id[ 1 ] ),
-                            space,
-                            generateExpression(stmt.test, {
-                                precedence: Precedence.Sequence,
-                                allowIn: true,
-                                allowCall: true,
-                                idBuffer: id
-                            }),
-                            space,
-                            wrapCodeFragmentHtml( ')', id[ 2 ] )
-                        ];
-                    });
+                withIndent(function (indent) {
+                    result = [
+                        // NOTE: 加了 wrap
+                        wrapCodeFragmentHtml( 'if', id[ 0 ] ),
+                        space,
+                        wrapCodeFragmentHtml( '(', id[ 1 ] ),
+                        space,
+                        generateExpression(stmt.test, {
+                            precedence: Precedence.Sequence,
+                            allowIn: true,
+                            allowCall: true,
+                            idBuffer: id
+                        }),
+                        space,
+                        wrapCodeFragmentHtml( ')', id[ 2 ] )
+                    ];
+                });
 
-                    if ( stmt.alternate ) {
-                        result.push( maybeBlock( stmt.consequent, null, id ) );
-                        result = maybeBlockSuffix( stmt.consequent, result );
+                if ( stmt.alternate ) {
+                    result.push( maybeBlock( stmt.consequent, null, id ) );
+                    result = maybeBlockSuffix( stmt.consequent, result );
 
-                        if ( stmt.alternate.type === Syntax.IfStatement ) {
-                            void function( id ){
-                                id = guid( 1 );
+                    if ( stmt.alternate.type === Syntax.IfStatement ) {
+                        id = guid( 1 );
 
-                                result = join(
-                                    result, [
-                                        wrapCodeFragmentHtml( "else", id[ 0 ] )  + ' ', 
-                                        generateStatement( stmt.alternate, { 
-                                            semicolonOptional: semicolon === '',
-                                            entrustedTraceId: id
-                                        } )
-                                    ]
-                                );
-                            }();
-                        } else {
-                            void function( id ){
-                                id = guid( 1 );
-
-                                result = join(
-                                    result, 
-                                    join(
-                                        wrapCodeFragmentHtml( 'else', id[ 0 ] ), 
-                                        maybeBlock(stmt.alternate, semicolon === '', id)
-                                    )
-                                );
-                            }();
-                        }
-
+                        result = join(
+                            result, [
+                                wrapCodeFragmentHtml( "else", id[ 0 ] )  + ' ', 
+                                generateStatement( stmt.alternate, { 
+                                    semicolonOptional: semicolon === '',
+                                    entrustedTraceId: id
+                                } )
+                            ]
+                        );
                     } else {
-                        result.push( maybeBlock(stmt.consequent, semicolon === '', id ));
+                        id = guid( 1 );
+
+                        result = join(
+                            result, 
+                            join(
+                                wrapCodeFragmentHtml( 'else', id[ 0 ] ), 
+                                maybeBlock(stmt.alternate, semicolon === '', id)
+                            )
+                        );
                     }
-                }();
+
+                } else {
+                    result.push( maybeBlock(stmt.consequent, semicolon === '', id ));
+                }
 
                 break;
 
             case Syntax.ForStatement:
-                void function( id ){
-                    id = guid( 4 );
+                id = guid( 4 );
 
-                    withIndent(function (indent) {
-                        result = [
-                            wrapCodeFragmentHtml( 'for', id[ 0 ] ),
-                            space,
-                            wrapCodeFragmentHtml( '(', id[ 1 ] ),
-                            space
-                        ];
+                withIndent(function (indent) {
+                    result = [
+                        wrapCodeFragmentHtml( 'for', id[ 0 ] ),
+                        space,
+                        wrapCodeFragmentHtml( '(', id[ 1 ] ),
+                        space
+                    ];
 
-                        if (stmt.init) {
-                            if (stmt.init.type === Syntax.VariableDeclaration) {
-                                result.push(
-                                    generateStatement(
-                                        stmt.init, { allowIn: false, idBuffer: id }
-                                    )
-                                );
-                            } else {
-                                result.push( generateExpression(stmt.init, {
-                                    precedence: Precedence.Sequence,
-                                    allowIn: false,
-                                    allowCall: true,
-                                    idBuffer: id
-                                } ), ';' );
-                            }
+                    if (stmt.init) {
+                        if (stmt.init.type === Syntax.VariableDeclaration) {
+                            result.push(
+                                generateStatement(
+                                    stmt.init, { allowIn: false, idBuffer: id }
+                                )
+                            );
                         } else {
-                            result.push( ';' );
-                        }
-
-                        if (stmt.test) {
-                            result.push( space, generateExpression(stmt.test, {
+                            result.push( generateExpression(stmt.init, {
                                 precedence: Precedence.Sequence,
-                                allowIn: true,
+                                allowIn: false,
                                 allowCall: true,
                                 idBuffer: id
-                            }), ';');
-                        } else {
-                            result.push( ';' );
+                            } ), ';' );
                         }
+                    } else {
+                        result.push( ';' );
+                    }
 
-                        if ( stmt.update ) {
-                            result.push(space, generateExpression(stmt.update, {
-                                precedence: Precedence.Sequence,
-                                allowIn: true,
-                                allowCall: true,
-                                idBuffer: id
-                            }), space, wrapCodeFragmentHtml( ')', id[ 2 ] ) );
-                        } else {
-                            result.push( space, wrapCodeFragmentHtml( ')', id[ 3 ] ) );
-                        }
-                    });
+                    if (stmt.test) {
+                        result.push( space, generateExpression(stmt.test, {
+                            precedence: Precedence.Sequence,
+                            allowIn: true,
+                            allowCall: true,
+                            idBuffer: id
+                        }), ';');
+                    } else {
+                        result.push( ';' );
+                    }
 
-                    result.push( 
-                        maybeBlock(stmt.body, semicolon === ''),
-                        injectAssistedCode( ";" ),
-                        injectCodeFragmentTrace( id )
-                    );
-                }();
+                    if ( stmt.update ) {
+                        result.push(space, generateExpression(stmt.update, {
+                            precedence: Precedence.Sequence,
+                            allowIn: true,
+                            allowCall: true,
+                            idBuffer: id
+                        }), space, wrapCodeFragmentHtml( ')', id[ 2 ] ) );
+                    } else {
+                        result.push( space, wrapCodeFragmentHtml( ')', id[ 3 ] ) );
+                    }
+                });
+
+                result.push( 
+                    maybeBlock(stmt.body, semicolon === ''),
+                    injectAssistedCode( ";" ),
+                    injectCodeFragmentTrace( id )
+                );
 
                 break;
 
             case Syntax.ForInStatement:
-                void function( id ){
-                    id = guid( 5 );
-                    
-                    result = [
-                        wrapCodeFragmentHtml( 'for', id[ 0 ] ),
-                        space,
-                        wrapCodeFragmentHtml( '(', space, id[ 1 ] )
-                    ];
+                id = guid( 5 );
+                
+                result = [
+                    wrapCodeFragmentHtml( 'for', id[ 0 ] ),
+                    space,
+                    wrapCodeFragmentHtml( '(', space, id[ 1 ] )
+                ];
 
-                    withIndent(function (indent) {
-                        if (stmt.left.type === Syntax.VariableDeclaration) {
-                            withIndent(function (indent) {
-                                result.push( 
-                                    wrapCodeFragmentHtml( stmt.left.kind, id[ 2 ] ) + ' ',
-                                    generateStatement(stmt.left.declarations[0], {
-                                    allowIn: false,
-                                    idBuffer: id
-                                }));
-                            });
-                        } else {
-                            result.push( generateExpression(stmt.left, {
-                                precedence: Precedence.Call,
-                                allowIn: true,
-                                allowCall: true,
+                withIndent(function (indent) {
+                    if (stmt.left.type === Syntax.VariableDeclaration) {
+                        withIndent(function (indent) {
+                            result.push( 
+                                wrapCodeFragmentHtml( stmt.left.kind, id[ 2 ] ) + ' ',
+                                generateStatement(stmt.left.declarations[0], {
+                                allowIn: false,
                                 idBuffer: id
                             }));
-                        }
+                        });
+                    } else {
+                        result.push( generateExpression(stmt.left, {
+                            precedence: Precedence.Call,
+                            allowIn: true,
+                            allowCall: true,
+                            idBuffer: id
+                        }));
+                    }
 
-                        result = join( result, wrapCodeFragmentHtml( 'in', id[ 3 ] ) );
-                        result = [ join(
-                            result,
-                            generateExpression(stmt.right, {
-                                precedence: Precedence.Sequence,
-                                allowIn: true,
-                                allowCall: true,
-                                idBuffer: id
-                            })
-                        ), space, wrapCodeFragmentHtml( ')', id[ 4 ] ) ];
-                    });
+                    result = join( result, wrapCodeFragmentHtml( 'in', id[ 3 ] ) );
+                    result = [ join(
+                        result,
+                        generateExpression(stmt.right, {
+                            precedence: Precedence.Sequence,
+                            allowIn: true,
+                            allowCall: true,
+                            idBuffer: id
+                        })
+                    ), space, wrapCodeFragmentHtml( ')', id[ 4 ] ) ];
+                });
 
-                    result.push(
-                        maybeBlock(stmt.body, semicolon === ''),
-                        injectAssistedCode( ";" ),
-                        injectCodeFragmentTrace( id )
-                    );
-                }();
+                result.push(
+                    maybeBlock(stmt.body, semicolon === ''),
+                    injectAssistedCode( ";" ),
+                    injectCodeFragmentTrace( id )
+                );
                 break;
 
             case Syntax.LabeledStatement:
-                void function( id ){
-                    id = guid( 1 );
+                id = guid( 1 );
 
-                    result = [
-                        injectCodeFragmentTrace( id ),
-                        wrapCodeFragmentHtml( stmt.label.name, id[ 0 ] ),
-                        ':',
-                        maybeBlock( stmt.body, semicolon === '', null, null, true )
-                    ];
-                }();
+                result = [
+                    injectCodeFragmentTrace( id ),
+                    wrapCodeFragmentHtml( stmt.label.name, id[ 0 ] ),
+                    ':',
+                    maybeBlock( stmt.body, semicolon === '', null, null, true )
+                ];
                 break;
 
             case Syntax.Program:
@@ -8611,101 +8639,93 @@ void function( window, factory ){
                 break;
 
             case Syntax.FunctionDeclaration:
-                void function( id ){
-                    id = guid( 2 );
+                id = guid( 2 );
 
-                    result = [
-                        wrapCodeFragmentHtml( "function", id[ 0 ] ),
-                        ' ',
-                        wrapCodeFragmentHtml( stmt.id.name, id[ 1 ] ),
-                        generateFunctionBody( stmt, id ),
-                        injectAssistedCode( ";" ),
-                        injectCodeFragmentTrace( id )
-                    ];
-                }();
+                result = [
+                    wrapCodeFragmentHtml( "function", id[ 0 ] ),
+                    ' ',
+                    wrapCodeFragmentHtml( stmt.id.name, id[ 1 ] ),
+                    generateFunctionBody( stmt, id ),
+                    injectAssistedCode( ";" ),
+                    injectCodeFragmentTrace( id )
+                ];
                 break;
 
             case Syntax.ReturnStatement:
-                void function( id ){
-                    id = guid( 1 );
+                id = guid( 1 );
 
-                    if (stmt.argument) {
-                        result = [
-                            injectAssistedCode( "try{" ),
-                            join(
-                                wrapCodeFragmentHtml( 'return', id[ 0 ] ),
-                                generateExpression(stmt.argument, {
-                                    precedence: Precedence.Sequence,
-                                    allowIn: true,
-                                    allowCall: true,
-                                    idBuffer: id
-                                })
-                            ),
-                            injectAssistedCode( "}catch(__trackerErrorData__){throw __trackerErrorData__;}finally{" ),
-                            injectCodeFragmentTrace( id ),
-                            injectAssistedCode( "}" ),
-                            semicolon
-                        ];
-                    } else {
-                        result = [
-                            injectCodeFragmentTrace( id ),
+                if (stmt.argument) {
+                    result = [
+                        injectAssistedCode( "try{" ),
+                        join(
                             wrapCodeFragmentHtml( 'return', id[ 0 ] ),
-                            semicolon
-                        ];
-                    }
-                }();
+                            generateExpression(stmt.argument, {
+                                precedence: Precedence.Sequence,
+                                allowIn: true,
+                                allowCall: true,
+                                idBuffer: id
+                            })
+                        ),
+                        injectAssistedCode( "}catch(__trackerErrorData__){throw __trackerErrorData__;}finally{" ),
+                        injectCodeFragmentTrace( id ),
+                        injectAssistedCode( "}" ),
+                        semicolon
+                    ];
+                } else {
+                    result = [
+                        injectCodeFragmentTrace( id ),
+                        wrapCodeFragmentHtml( 'return', id[ 0 ] ),
+                        semicolon
+                    ];
+                }
                 break;
 
             case Syntax.WhileStatement:
-                void function( id ){
-                    id = guid( 3 );
+                id = guid( 3 );
 
-                    withIndent(function (indent) {
-                        result = [
-                            wrapCodeFragmentHtml( 'while', id[ 0 ] ) + space + wrapCodeFragmentHtml( '(', id[ 1 ] ),
-                            space,
-                            generateExpression(stmt.test, {
-                                precedence: Precedence.Sequence,
-                                allowIn: true,
-                                allowCall: true,
-                                idBuffer: id
-                            }),
-                            space,
-                            wrapCodeFragmentHtml( ')', id[ 2 ] )
-                        ];
-                    });
-                    result.push(
-                        maybeBlock(stmt.body, semicolon === ''),
-                        injectAssistedCode( ";" ),
-                        injectCodeFragmentTrace( id )
-                    );
-                }();
+                withIndent(function (indent) {
+                    result = [
+                        wrapCodeFragmentHtml( 'while', id[ 0 ] ) + space + wrapCodeFragmentHtml( '(', id[ 1 ] ),
+                        space,
+                        generateExpression(stmt.test, {
+                            precedence: Precedence.Sequence,
+                            allowIn: true,
+                            allowCall: true,
+                            idBuffer: id
+                        }),
+                        space,
+                        wrapCodeFragmentHtml( ')', id[ 2 ] )
+                    ];
+                });
+                result.push(
+                    maybeBlock(stmt.body, semicolon === ''),
+                    injectAssistedCode( ";" ),
+                    injectCodeFragmentTrace( id )
+                );
                 break;
 
             case Syntax.WithStatement:
-                void function( id ){
-                    id = guid( 3 );
+                id = guid( 3 );
 
-                    withIndent(function (indent) {
-                        result = [
-                            wrapCodeFragmentHtml( 'with', id[ 0 ] ),
-                            space,
-                            wrapCodeFragmentHtml( '(', id[ 1 ] ),
-                            space,
-                            generateExpression(stmt.object, {
-                                precedence: Precedence.Sequence,
-                                allowIn: true,
-                                allowCall: true,
-                                idBuffer: id
-                            }),
-                            space,
-                            wrapCodeFragmentHtml( ')', id[ 2 ] )
-                        ];
-                    });
-                    result.push(
-                        maybeBlock(stmt.body, semicolon === '', id)
-                    );
-                }();
+                withIndent(function (indent) {
+                    result = [
+                        wrapCodeFragmentHtml( 'with', id[ 0 ] ),
+                        space,
+                        wrapCodeFragmentHtml( '(', id[ 1 ] ),
+                        space,
+                        generateExpression(stmt.object, {
+                            precedence: Precedence.Sequence,
+                            allowIn: true,
+                            allowCall: true,
+                            idBuffer: id
+                        }),
+                        space,
+                        wrapCodeFragmentHtml( ')', id[ 2 ] )
+                    ];
+                });
+                result.push(
+                    maybeBlock(stmt.body, semicolon === '', id)
+                );
                 break;
 
             default:
@@ -8730,7 +8750,7 @@ void function( window, factory ){
             var defaultOptions = getDefaultOptions(), result, pair;
 
             currentCode = currentCodeInstance;
-            snippetsIdSet = currentCode.snippetsIdSet;
+            // snippetsIdSet = currentCode.snippetsIdSet;
 
             if (options != null) {
                 // Obsolete options

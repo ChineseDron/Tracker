@@ -61,4 +61,6 @@ $( function(){
         trigger: "hover",
         container: "body"
     } );
+
+    $( "img" ).lazyload();
 } );

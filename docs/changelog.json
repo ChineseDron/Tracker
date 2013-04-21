@@ -1,4 +1,7 @@
 [
+    { "version": "1.7.9", "description": "修复信息面板不可滚动 bug，调整控制台部分布局" },
+    { "version": "1.7.8", "description": "修复部分界面 bug，调整部分 API，实现插件雏形（暂未开放）" },
+    { "version": "1.7.7", "description": "优化更精确的监测 cpu 函数（内部用），信息面板里补充加载和运行时间；优化性能（空间不大）" },
     { "version": "1.7.6", "description": "新增加载耗时和运行耗时统计项；修复 Firefox 下菜单不能用的问题" },
     { "version": "1.7.5", "description": "延时超时时间，对于在解析较慢网站比较有利" },
     { "version": "1.7.4", "description": "修复新浪首页大量报错问题" },
