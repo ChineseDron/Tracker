@@ -1,4 +1,7 @@
 [
+    { "version": "1.8.2", "description": "控制台改为 toolbar 的形式，并使用 underscore 前端模板进行改进，改善了禁止 iframe 嵌入的网页的使用" },
+    { "version": "1.8.1", "description": "修复“推荐给好友”功能不可用问题" },
+    { "version": "1.8.0", "description": "集成 underscore 的前端模板，新增“综合结果”面板（此为第一个插件应用）" },
     { "version": "1.7.9", "description": "修复信息面板不可滚动 bug，调整控制台部分布局" },
     { "version": "1.7.8", "description": "修复部分界面 bug，调整部分 API，实现插件雏形（暂未开放）" },
     { "version": "1.7.7", "description": "优化更精确的监测 cpu 函数（内部用），信息面板里补充加载和运行时间；优化性能（空间不大）" },

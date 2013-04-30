@@ -12,7 +12,7 @@ ul.tab-content, ol.tab-content{ margin: 0; padding: 0; }
 ::-webkit-scrollbar-track-piece{ background: #fafafa; -webkit-border-radius: 0; }
 
 html, body, table{ font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei'; }
-html, body{ width: 100%; height: 100%; overflow: hidden; }
+html, body{ width: 100%; height: 100%; overflow: hidden; background: transparent; }
 
 .scrollable{ overflow: auto; }
 .ellipsisable{ white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
@@ -25,19 +25,22 @@ table.compact-width th{ padding: 8px 5px; }
 .tab-content{ overflow: hidden; position: absolute; }
 .tab-content>li{ display: none; position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
 .tab-content>li.tab-content-active{ display: block; }
+.target-web-page{ background: transparent; }
 
 #top-navbar .close{ padding: 7px 18px 0 0; }
 #top-navbar .brand{ color: #333; }
 
-.main{ position: absolute; position: absolute; top: 43px; bottom: 0; left: 0; right: 0; }
+.main{ position: absolute; top: 43px; bottom: 0; left: 0; right: 0; }
 
 #pages{ top: 0; bottom: 0; left: 0; right: 0; }
+#pages>li{ background-color: #fff; }
+#pages>li.target-web-page{ background-color: transparent; }
 
 #list-codes{ cursor: default; position: absolute; top: 36px; bottom: 0; left: 0; right: 0; }
 #list-codes-tbody .none{ color: #999; }
 #list-codes-tbody .stress{ color: #e5818a; }
 
-#code-detail{ left: 155px; right: 0; top: 0; bottom: 0; border-left: 1px solid #cacaca; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.065); display: none; overflow: hidden; z-index: 2; }
+#code-detail{ left: 200px; right: 0; top: 0; bottom: 0; border-left: 1px solid #cacaca; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.065); display: none; overflow: hidden; z-index: 2; }
 #code-detail .code-toolbar{ height: 42px; background-color: #fafafa; border-bottom: 1px solid #d5d5d5; }
 #code-detail ul.code-toolbar-inner{ list-style-type: none; height: 100%; margin: 0; padding: 0; }
 #code-detail .code-toolbar li{ float: left; display: block; }
@@ -65,6 +68,7 @@ table.compact-width th{ padding: 8px 5px; }
 #code-info .group dt{ display: block; float: left; width: 90px; }
 #code-info .group dd{ display: block; margin-left: 90px; }
 
-#loading{ position: absolute; left: 0; top: 0; background: rgba(0,0,0,.5); width: 100%; height: 100%; text-align: left; z-index: 100; display: none; }
-#loading span{ color: #fff; font-size: 16px; padding: 14px 0 0 14px; display: inline-block; text-shadow: 0 0 3px #000; }
+w#loading{ text-align: left; display: none; height: 42px; overflow: hidden; -webkit-transition: height .5s ease; -moz-transition: height .5s ease; -o-transition: height .5s ease; transition: height .5s ease; }
+#loading .navbar-inner{ border-left: 0; box-shadow: none; }
+#loading span{ color: #000; font-size: 14px; line-height: 40px; display: inline-block; text-shadow: 0 1px 0 white; }
 #loading span#waitTime{ padding-left: 10px; }

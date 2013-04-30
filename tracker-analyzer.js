@@ -1,6 +1,6 @@
 /** 
  * Tracker Analyzer
- * @version 1.7.9
+ * @version 1.8.2
  * @author dron
  * @create 2012-12-22
  */
@@ -27,7 +27,7 @@ void function( window, factory ){
 }( this, function( window ){
     var global, host, location, slice, floor, max, push, join, version, controllerOnLoad;
 
-    version = "1.7.9";
+    version = "1.8.2";
     global = window;
     host = global.document;
     location = global.location;
@@ -137,23 +137,6 @@ void function( window, factory ){
                         iterator( unknow.charAt( i ), i, unknow );
             },
 
-            format: function( source, data ){
-                var rtn = source, blank = {}, item;
-
-                for( var key in data ){
-                    if( !data.hasOwnProperty( key ) )
-                        continue;
-
-                    if( item = data[ key ] )
-                        item = item.toString().replace( /\$/g, "$$$$" );
-                    
-                    item = typeof item === "undefined" ? "" : item;
-                    rtn = rtn.replace( RegExp( "@{" + key + "}", "g" ), item );
-                }
-
-                return rtn.toString();
-            },
-
             id: function( id ){
                 return function(){
                     return "_" + id ++;
@@ -226,6 +209,64 @@ void function( window, factory ){
                 }while( 1 );
             },
 
+            tmpl: function( text, data ){
+                var settings, render, noMatch, matcher, index, source, escaper, escapes, template;
+
+                settings = { evaluate: /<%([\s\S]+?)%>/g, interpolate: /<%=([\s\S]+?)%>/g };
+                noMatch = /(.)^/;
+
+                matcher = new RegExp( [
+                    ( settings.interpolate || noMatch ).source,
+                    ( settings.evaluate || noMatch ).source
+                ].join('|') + '|$', 'g' );
+
+                index = 0;
+                source = "__p+='";
+                escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
+                escapes = {
+                    "'": "'", '\\': '\\', '\r': 'r', '\n': 'n', '\t': 't', '\u2028': 'u2028',
+                    '\u2029': 'u2029'
+                };
+
+                text.replace( matcher, function( match, interpolate, evaluate, offset ){
+                    source += text.slice( index, offset ).replace( escaper, function( match ){
+                        return '\\' + escapes[ match ];
+                    } );
+
+                    if( interpolate )
+                        source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
+
+                    if( evaluate )
+                        source += "';\n" + evaluate + "\n__p+='";
+
+                    index = offset + match.length;
+                    return match;
+                } );
+
+                source += "';\n";
+                source = 'with(obj||{}){\n' + source + '}\n';
+                source = "var __t,__p='',__j=Array.prototype.join," +
+                    "print=function(){__p+=__j.call(arguments,'');};\n" + source + "return __p;\n";
+
+                try{
+                    render = new Function( 'obj', source );
+                }catch( e ){
+                    e.source = source;
+                    throw e;
+                }
+
+                if( data )
+                    return render( data );
+
+                template = function( data ) {
+                    return render.call( this, data );
+                };
+
+                template.source = 'function(obj){\n' + source + '}';
+
+                return template;
+            },
+
             tag: function( html, tagName, className ){
                 var result, t;
 
@@ -240,6 +281,14 @@ void function( window, factory ){
                         "<$1 class='" + className + "'>" );
 
                 return result;
+            },
+
+            hasClass: function( el, className ){
+                var name;
+
+                name = " " + el.className + " ";
+
+                return ~name.indexOf( " " + className + " " );
             },
 
             addClass: function( el, className ){
@@ -620,7 +669,7 @@ void function( window, factory ){
         return promise;
     }();
 
-    var Event = function(){
+    var Event = host.Event = function(){
         return {
             add: function( target, event, fn ){
                 if( typeof event == "object" ){
@@ -679,6 +728,8 @@ void function( window, factory ){
         }
     }();
 
+    host.TrackerGlobalEvent = Event.bind();
+
     var AsynStringReplacer = function(){
         var restoreRegx = /\({3}AsynStringReplacer:(\d+)\){3}/g;
 
@@ -705,17 +756,10 @@ void function( window, factory ){
         };
     }();
 
-    var getShareLink = function(){
-        var url = "http://service.weibo.com/share/share.php";
-        url = util.param( url, "title", "%40dron%E5%BE%AE%E5%8D%9A%20%E6%88%91%E6%AD%A3%E5%9C%A8%E4%BD%BF%E7%94%A8%20Tracker%20%E6%8E%92%E6%9F%A5%E7%BD%91%E9%A1%B5%E4%B8%AD%E5%86%97%E4%BD%99%E7%9A%84%E8%84%9A%E6%9C%AC%EF%BC%8C%E6%8C%BA%E7%BB%99%E5%8A%9B%E7%9A%84%EF%BC%8C%E5%85%8D%E5%AE%89%E8%A3%85%EF%BC%8C%E7%9B%B4%E6%8E%A5%E5%9C%A8%E6%B5%8F%E8%A7%88%E5%99%A8%E4%B8%AD%E5%B0%B1%E8%83%BD%E7%94%A8%EF%BC%8C%E6%8E%A8%E8%8D%90%E5%A4%A7%E5%AE%B6%E8%AF%95%E8%AF%95%E3%80%82" );
-        url = util.param( url, "url", encodeURIComponent( "http://ucren.com/tracker/" ) );
-        return url;
-    };
-
     var Code = function(){
         var klass;
 
-        klass = function( url, content ){
+        klass = function( url, content, scriptElementIndex ){
             var comboCode, beautifyCode;
 
             Feedback.lookup( this );
@@ -733,7 +777,7 @@ void function( window, factory ){
             this.beautifySize = -1;
             this.runErrors = [];
             this.syntaxErrors = [];
-            // this.snippetsIdSet = {}; // 已切分成代码碎片的 id 集合
+            this.props = {};
 
             this.executiveCode = "";
             this.linesViewHtml = [];
@@ -751,7 +795,7 @@ void function( window, factory ){
                         this.syntaxErrors.push( comboCode );
                         this.fire( "error", "syntaxErrors" );
                     }else{
-                        this.executiveCode = comboCode.getExecutiveCode();
+                        this.executiveCode = comboCode.getExecutiveCode( scriptElementIndex );
                         beautifyCode = comboCode.getBeautifyCode();
                         this.beautifySize = util.getByteLength( beautifyCode );
                         this.rowsCount = util.splitToLines( beautifyCode ).length;
@@ -759,16 +803,14 @@ void function( window, factory ){
 
                     this.linesViewHtml = comboCode.getViewHtmlByLines();
                     this.onReady.fire();
-                    // util.delay( util.bind( this.onReady.fire, this.onReady ) );
                 }, this ) );
             }else{
-                this.executiveCode = "void function (){}";
+                this.executiveCode = ";";
                 this.beautifySize = this.size = 0;
                 this.rowsCount = 0;
                 this.linesViewHtml = [];
                 this.setState( "empty" );
                 this.onReady.fire();
-                // util.delay( util.bind( this.onReady.fire, this.onReady ) );
             }
         };
 
@@ -785,6 +827,13 @@ void function( window, factory ){
                 this.runErrors.push( new Error( message ) );
                 this.lastModified = util.time();
                 this.fire( "error", "runErrors" );
+            },
+
+            prop: function( name, value ){
+                if( arguments.length == 2 )
+                    return this.props[ name ] = value;
+                else
+                    return this.props[ name ];
             }
         } );
 
@@ -817,8 +866,6 @@ void function( window, factory ){
             }
 
             this.onReady.fire();
-                // util.delay( util.bind( this.onReady.fire, this.onReady ) );
-            // }, this ) );
         };
 
         klass.prototype = Event.bind( {
@@ -834,11 +881,14 @@ void function( window, factory ){
                 return code;
             },
 
-            getExecutiveCode: function(){
-                var code = this.code;
+            getExecutiveCode: function( scriptElementIndex ){
+                var code, inst, a;
 
+                code = this.code;
+                inst = this.CodeInstance;
                 code = code.replace( viewHtmlRegx, "" );
                 code = code.replace( comboCodeBoundaryRegx, "" );
+
                 code = code.replace( closeTagRegx, function( s, a ){
                     return "<\\/" + a + ">";
                 } );
@@ -847,8 +897,12 @@ void function( window, factory ){
                     return a + "__trackerMockTop__()" + c;
                 } );
 
-                code = "try{" + code + "}catch(__trackerErrorData__){__trackerError__('" + 
-                    this.CodeInstance.id + "',__trackerErrorData__.message);throw __trackerErrorData__;}";
+                code = "try{" + code + 
+                    "}catch(e){__trackerError__('" + inst.id + "',e.message);throw e;}";
+
+                a = typeof scriptElementIndex == "undefined" ? "" : "," + scriptElementIndex;
+                code = "__trackerScriptStart__('" + inst.id + "'" + a + ");" + 
+                    code + "; __trackerScriptEnd__('" + inst.id + "');";
 
                 return code;
             },
@@ -933,57 +987,93 @@ void function( window, factory ){
     var View = host.View = function(){
         return {
             templates: {
-                url: "<a href='@{url}' target='_blank'>@{url}</a>",
+                url: util.tmpl( "<a href='<%= url %>' target='_blank'><%= url %></a>" ),
 
-                frameset: [
-                    "<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Frameset//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd'>",
+                frameset: util.tmpl( [
+                    "<!DOCTYPE html>",
                     "<html>",
                     "<head>",
-                        "<meta charset='@{charset}'>",
+                            "<meta charset='<%= charset %>'>",
                         "<meta name='description' content='ucren-tracker-frame'>",
-                        "<title>@{title}</title>",
+                            "<title><%= title %></title>",
+                            "<style type='text/css'>",
+                                "html, body{ margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; position: relative; }",
+                                ".fullness{ position: absolute; left: 0; right: 0; top: 0; bottom: 0; }",
+                                "#wrapper{}",
+                                "#tracker_controller{ z-index: 10; }",
+                                "#tracker_page{ top: 43px; z-index: 20; }",
+                                "body.control-power-mode #tracker_page{ z-index: 0; }",
+                                "iframe{ border: 0; width: 100%; height: 100%; }",
+                            "</style>",
                     "</head>",
-                    "<frameset rows='*,0' framespacing='0' frameborder='no'>",
-                        "<frame src='@{url}' name='tracker_page' />",
-                        "<frame src='about:blank' name='tracker_controller' noresize='yes' />",
-                    "</frameset>",
+                        "<body>",
+                            "<div id='wrapper' class='fullness'>",
+                                "<div id='tracker_controller' class='fullness'><iframe src='about:blank' name='tracker_controller' frameborder='no'></iframe></div>",
+                                "<div id='tracker_page' class='fullness'><iframe src='<%= url %>' name='tracker_page' frameborder='no'></iframe></div>",
+                            "</div>",
+                        "</body>",
                     "</html>"
-                ].join( "" ),
+                ].join( "" ) ),
 
-                controllerPage: [
+                controllerPage: util.tmpl( [
                     "<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Frameset//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd'>",
                     "<html>",
                     "<head>",
-                        "<meta charset='@{charset}'>",
+                        "<meta charset='<%= charset %>'>",
                         "<meta name='author' content='dron'>",
                         "<title>Tracker!</title>",
-                        "<link href='@{cachePhp}./bootstrap/css/bootstrap.min.css&amp;version=2013041602' type='text/css' rel='stylesheet' />",
-                        "<link href='@{cachePhp}./controller-resources/controller.css&amp;version=20130422' type='text/css' rel='stylesheet' />",
+                        "<link href='<%= cachePhp %>./bootstrap/css/bootstrap.min.css&amp;version=2013041602' type='text/css' rel='stylesheet' />",
+                        "<link href='<%= cachePhp %>./controller-resources/controller.css&amp;version=20130429" + Math.random() + "' type='text/css' rel='stylesheet' />",
                     "</head>",
                     "<body>",
-                        "@{header}",
-                        "<div class='main'>",
+                        "<%= header %>",
+                        "<div class='main' id='main'>",
                             "<ul id='pages' class='unstyled tab-content'>",
-                                "<li class='tab-content-active'>",
-                                    "@{codeList}",
-                                    "@{codeDetail}",
+                                "<% if( mode == 'embed' ){ %>",
+                                    "<li class='tab-content-active target-web-page'></li>",
+                                "<% } %>",
+                                "<li class='<%= mode == 'embed' ? '' : 'tab-content-active' %>'>",
+                                    "<%= codeList %>",
+                                    "<%= codeDetail %>",
                                 "</li>",
                             "</ul>",
                         "</div>",
-                        "@{dialogAbout}",
-                        "@{globalLoading}",
+                        "<div id='dialog-about' class='modal hide fade in'>",
+                            "<div class='modal-header'>",
+                                "<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>",
+                                "<h3>Tracker</h3>",
+                            "</div>",
+                            "<div class='modal-body'>",
+                                "<p>&#24403;&#21069;&#29256;&#26412;&#65306;<%= version %></p>",
+                                "<p>&#25480;&#26435;&#32473;&#65306;<%= uid %></p>",
+                            "</div>",
+                            "<div class='modal-footer'>",
+                                "<a href='#' onclick='return false;' class='btn btn-primary'>&#30830;&#23450;</a>",
+                            "</div>",
+                        "</div>",
                         "<script> window.readyState = 'done'; </script>",
                     "</body>",
                     "</html>"
-                ].join( "" ),
+                ].join( "" ) ),
 
-                controllerTopbar: [
+                controllerTopbar: util.tmpl( [
+                    "<div id='loading' class='navbar'>",
+                        "<div class='navbar-inner'>",
+                            "<span>&#35831;&#31245;&#31561;&#65292;&#25910;&#38598;&#20013;...</span>",
+                            "<span id='waitTime'></span>",
+                        "</div>",
+                    "</div>",
                     "<div id='top-navbar' class='navbar'>",
                         "<div class='navbar-inner'>",
                             "<button class='close pull-left' action='frame#close'>&times;</button>",
                             "<a class='brand'>Tracker</a>",
                             "<ul id='top-nav' class='nav pull-left' data-target='pages'>",
+                                "<% if( mode == 'embed' ){ %>",
+                                    "<li class='active'><a href='' onclick='return false'>&#24403;&#21069;&#32593;&#39029;</a></li>",
+                                    "<li><a href='' onclick='return false'>&#20195;&#30721;&#21015;&#34920;</a></li>",
+                                "<% }else{ %>",
                                 "<li class='active'><a href='' onclick='return false'>&#20195;&#30721;&#21015;&#34920;</a></li>",
+                                "<% } %>",
                             "</ul>",
                             "<ul class='nav pull-right'>",
                                 "<li class='dropdown'>",
@@ -1004,32 +1094,32 @@ void function( window, factory ){
                                     "<ul class='dropdown-menu'>",
                                         "<li><a href='http://ucren.com/tracker/docs/index.html' target='_blank'>&#24110;&#21161;&#20027;&#39064;</a></li>",
                                         "<li><a href='https://github.com/ChineseDron/Tracker/issues/new' target='_blank'>&#25253;&#38169;</a></li>",
-                                        "<li><a href='@{shareLink}' target='_blank'>&#25512;&#33616;&#32473;&#22909;&#21451;</a></li>",
+                                        "<li><a href='#' action='share#open' onclick='return false;'>&#25512;&#33616;&#32473;&#22909;&#21451;</a></li>",
                                         "<li><a href='#' action='about#open' onclick='return false;'>&#20851;&#20110;...</a></li>",
                                     "</ul>",
                                 "</li>",
                             "</ul>",
                         "</div>",
                     "</div>",
-                ].join( "" ),
+                ].join( "" ) ),
 
-                controllerCodeList: [
+                controllerCodeList: util.tmpl( [
                     "<table class='table compact-width'>",
                         "<thead>",
                             "<tr>",
-                                "<th width='@{widthIndex}'>#</th>",
-                                "<th width='@{widthName}'>&#21517;&#31216;</th>",
-                                "<th width='@{widthType}'>&#31867;&#22411;</th>",
-                                "<th width='@{widthCover}'>&#25191;&#34892;&#35206;&#30422;</th>",
-                                "<th width='@{widthCoverLine}'>&#25191;&#34892;&#34892;&#25968;</th>",
-                                "<th width='@{widthLines}'>&#24635;&#34892;&#25968;</th>",
-                                "<th width='@{widthSize}'>&#21407;&#22987;&#22823;&#23567;</th>",
-                                "<th width='@{widthBSize}'>&#35299;&#21387;&#22823;&#23567;</th>",
-                                "<th width='@{widthLoadConsum}'>&#21152;&#36733;&#32791;&#26102;</th>",
-                                "<th width='@{widthRunConsum}'>&#36816;&#34892;&#32791;&#26102;</th>",
-                                "<th width='@{widthRError}'>&#25191;&#34892;&#25253;&#38169;</th>",
-                                "<th width='@{widthSError}'>&#35821;&#27861;&#38169;&#35823;</th>",
-                                "<th width='@{widthState}'>&#29366;&#24577;</th>",
+                                "<th width='<%= widthIndex %>'>#</th>",
+                                "<th width='<%= widthName %>'>&#21517;&#31216;</th>",
+                                "<th width='<%= widthType %>'>&#31867;&#22411;</th>",
+                                "<th width='<%= widthCover %>'>&#25191;&#34892;&#35206;&#30422;</th>",
+                                "<th width='<%= widthCoverLine %>'>&#25191;&#34892;&#34892;&#25968;</th>",
+                                "<th width='<%= widthLines %>'>&#24635;&#34892;&#25968;</th>",
+                                "<th width='<%= widthSize %>'>&#21407;&#22987;&#22823;&#23567;</th>",
+                                "<th width='<%= widthBSize %>'>&#35299;&#21387;&#22823;&#23567;</th>",
+                                "<th width='<%= widthLoadConsum %>'>&#21152;&#36733;&#32791;&#26102;</th>",
+                                "<th width='<%= widthRunConsum %>'>&#36816;&#34892;&#32791;&#26102;</th>",
+                                "<th width='<%= widthRError %>'>&#25191;&#34892;&#25253;&#38169;</th>",
+                                "<th width='<%= widthSError %>'>&#35821;&#27861;&#38169;&#35823;</th>",
+                                "<th width='<%= widthState %>'>&#29366;&#24577;</th>",
                                 "<th width='*'>&nbsp;</th>",
                             "</tr>",
                         "</thead>",
@@ -1037,27 +1127,27 @@ void function( window, factory ){
                     "<div id='list-codes' class='scrollable'>",
                         "<table class='table table-striped table-hover table-condensed'>",
                             "<colgroup>",
-                                "<col width='@{widthIndex}'>",
-                                "<col width='@{widthName}'>",
-                                "<col width='@{widthType}'>",
-                                "<col width='@{widthCover}'>",
-                                "<col width='@{widthCoverLine}'>",
-                                "<col width='@{widthLines}'>",
-                                "<col width='@{widthSize}'>",
-                                "<col width='@{widthBSize}'>",
-                                "<col width='@{widthLoadConsum}'>",
-                                "<col width='@{widthRunConsum}'>",
-                                "<col width='@{widthRError}'>",
-                                "<col width='@{widthSError}'>",
-                                "<col width='@{widthState}'>",
+                                "<col width='<%= widthIndex %>'>",
+                                "<col width='<%= widthName %>'>",
+                                "<col width='<%= widthType %>'>",
+                                "<col width='<%= widthCover %>'>",
+                                "<col width='<%= widthCoverLine %>'>",
+                                "<col width='<%= widthLines %>'>",
+                                "<col width='<%= widthSize %>'>",
+                                "<col width='<%= widthBSize %>'>",
+                                "<col width='<%= widthLoadConsum %>'>",
+                                "<col width='<%= widthRunConsum %>'>",
+                                "<col width='<%= widthRError %>'>",
+                                "<col width='<%= widthSError %>'>",
+                                "<col width='<%= widthState %>'>",
                             "</colgroup>",
                             "<tbody id='list-codes-tbody'>",
                             "</tbody>",
                         "</table>",
                     "</div>"
-                ].join( "" ),
+                ].join( "" ) ),
 
-                controllerCodeDetail: [
+                controllerCodeDetail: util.tmpl( [
                     "<div id='code-detail' class='absolute'>",
                         "<div class='code-toolbar clearfix'>",
                             "<ul class='code-toolbar-inner'>",
@@ -1086,100 +1176,77 @@ void function( window, factory ){
                             "</li>",
                         "</ul>",
                     "</div>"
-                ].join( "" ),
+                ].join( "" ) ),
 
-                controllerCodeInfo: [
+                controllerCodeInfo: util.tmpl( [
                     "<dl class='group'>",
                         "<dt>&#26469;&#28304;</dt>",
-                        "<dd>@{fileName}</dd>",
+                        "<dd><%= fileName %></dd>",
                     "</dl>",
                     "<dl class='group'>",
                         "<dt>&#31867;&#22411;</dt>",
-                        "<dd>@{type}</dd>",
+                        "<dd><%= type %></dd>",
                     "</dl>",
                     "<dl class='group'>",
                         "<dt>&#25191;&#34892;&#35206;&#30422;&#29575;</dt>",
-                        "<dd>@{rate}</dd>",
+                        "<dd><%= rate %></dd>",
                     "</dl>",
                     "<dl class='group'>",
                         "<dt>&#25191;&#34892;&#34892;&#25968;</dt>",
-                        "<dd>@{arriveRowsCount}</dd>",
+                        "<dd><%= arriveRowsCount %></dd>",
                     "</dl>", 
                     "<dl class='group'>",
                         "<dt>&#24635;&#34892;&#25968;</dt>",
-                        "<dd>@{rowsCount}</dd>",
+                        "<dd><%= rowsCount %></dd>",
                     "</dl>",
                     "<dl class='group'>",
                         "<dt>&#21407;&#22987;&#22823;&#23567;</dt>",
-                        "<dd>@{size}</dd>",
+                        "<dd><%= size %></dd>",
                     "</dl>",                       
                     "<dl class='group'>",
                         "<dt>&#35299;&#21387;&#22823;&#23567;</dt>",
-                        "<dd>@{bsize}</dd>",
+                        "<dd><%= bsize %></dd>",
                     "</dl>",
                     "<dl class='group'>",
                         "<dt>&#21152;&#36733;&#32791;&#26102;</dt>",
-                        "<dd>@{loadConsum}</dd>",
+                        "<dd><%= loadConsum %></dd>",
                     "</dl>",
                     "<dl class='group'>",
                         "<dt>&#36816;&#34892;&#32791;&#26102;</dt>",
-                        "<dd>@{runConsum}</dd>",
+                        "<dd><%= runConsum %></dd>",
                     "</dl>",
                     "<dl class='group'>",
                         "<dt>&#25191;&#34892;&#25253;&#38169;</dt>",
-                        "<dd>@{rerror}</dd>",
+                        "<dd><%= rerror %></dd>",
                     "</dl>",                       
                     "<dl class='group'>",
                         "<dt>&#35821;&#27861;&#38169;&#35823;</dt>",
-                        "<dd>@{serror}</dd>",
+                        "<dd><%= serror %></dd>",
                     "</dl>",                       
                     "<dl class='group'>",
                         "<dt>&#29366;&#24577;</dt>",
-                        "<dd>@{state}</dd>",
+                        "<dd><%= state %></dd>",
                     "</dl>",                       
-                ].join( "" ),
+                ].join( "" ) ),
 
-                controllerDialogAbout: [
-                    "<div id='dialog-about' class='modal hide fade in'>",
-                        "<div class='modal-header'>",
-                            "<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>",
-                            "<h3>Tracker</h3>",
-                        "</div>",
-                        "<div class='modal-body'>",
-                            "<p>&#24403;&#21069;&#29256;&#26412;&#65306;@{version}</p>",
-                            "<p>&#25480;&#26435;&#32473;&#65306;@{uid}</p>",
-                        "</div>",
-                        "<div class='modal-footer'>",
-                            "<a href='#' onclick='return false;' class='btn btn-primary'>&#30830;&#23450;</a>",
-                        "</div>",
-                    "</div>",
-                ].join( "" ),
-
-                controllerGlobalLoading: [
-                    "<div id='loading'>",
-                        "<span>&#35831;&#31245;&#31561;&#65292;&#25910;&#38598;&#20013;...</span>",
-                        "<span id='waitTime'></span>",
-                    "</div>"
-                ].join( "" ),
-
-                codeListLine: [
-                    "<tr data-code-id='@{id}'>",
-                        "<td><div class='ellipsisable' style='width: @{widthIndex}px;'>@{index}</div></td>",
-                        "<td><div class='ellipsisable' style='width: @{widthName}px;'>@{fileName}</div></td>",
-                        "<td><div class='ellipsisable' style='width: @{widthType}px;'>@{type}</div></td>",
-                        "<td><div id='code-@{id}-rate' class='ellipsisable' style='width: @{widthCover}px;'>@{rate}</div></td>",
-                        "<td><div id='code-@{id}-arriveRowsCount' class='ellipsisable' style='width: @{widthCoverLine}px;'>@{arriveRowsCount}</div></td>",
-                        "<td><div class='ellipsisable' style='width: @{widthLines}px;'>@{rowsCount}</div></td>",
-                        "<td><div class='ellipsisable' style='width: @{widthSize}px;'>@{size}</div></td>",
-                        "<td><div class='ellipsisable' style='width: @{widthBSize}px;'>@{bsize}</div></td>",
-                        "<td><div id='code-@{id}-loadConsum' class='ellipsisable' style='width: @{widthLoadConsum}px;'>@{loadConsum}</div></td>",
-                        "<td><div id='code-@{id}-runConsum' class='ellipsisable' style='width: @{widthRunConsum}px;'>@{runConsum}</div></td>",
-                        "<td><div id='code-@{id}-runErrors' class='ellipsisable' style='width: @{widthRError}px;'>@{rerror}</div></td>",
-                        "<td><div class='ellipsisable' style='width: @{widthSError}px;'>@{serror}</div></td>",
-                        "<td><div class='ellipsisable' style='width: @{widthState}px;'>@{state}</div></td>",
+                codeListLine: util.tmpl( [
+                    "<tr data-code-id='<%= id %>'>",
+                        "<td><div class='ellipsisable' style='width: <%= widthIndex %>px;'><%= index %></div></td>",
+                        "<td><div class='ellipsisable' style='width: <%= widthName %>px;'><%= fileName %></div></td>",
+                        "<td><div class='ellipsisable' style='width: <%= widthType %>px;'><%= type %></div></td>",
+                        "<td><div id='code-<%= id %>-rate' class='ellipsisable' style='width: <%= widthCover %>px;'><%= rate %></div></td>",
+                        "<td><div id='code-<%= id %>-arriveRowsCount' class='ellipsisable' style='width: <%= widthCoverLine %>px;'><%= arriveRowsCount %></div></td>",
+                        "<td><div class='ellipsisable' style='width: <%= widthLines %>px;'><%= rowsCount %></div></td>",
+                        "<td><div class='ellipsisable' style='width: <%= widthSize %>px;'><%= size %></div></td>",
+                        "<td><div class='ellipsisable' style='width: <%= widthBSize %>px;'><%= bsize %></div></td>",
+                        "<td><div id='code-<%= id %>-loadConsum' class='ellipsisable' style='width: <%= widthLoadConsum %>px;'><%= loadConsum %></div></td>",
+                        "<td><div id='code-<%= id %>-runConsum' class='ellipsisable' style='width: <%= widthRunConsum %>px;'><%= runConsum %></div></td>",
+                        "<td><div id='code-<%= id %>-runErrors' class='ellipsisable' style='width: <%= widthRError %>px;'><%= rerror %></div></td>",
+                        "<td><div class='ellipsisable' style='width: <%= widthSError %>px;'><%= serror %></div></td>",
+                        "<td><div class='ellipsisable' style='width: <%= widthState %>px;'><%= state %></div></td>",
                         "<td></td>",
                     "</tr>"
-                ].join( "" )
+                ].join( "" ) )
             },
 
             Loading: function(){
@@ -1191,7 +1258,7 @@ void function( window, factory ){
                 var create = function(){
                     var span;
 
-                    layer = util.makeElement( "div", "position: fixed; padding: 30px; border-radius: 10px; background: rgba(0,0,0,.75); font-size: 20px; line-height: 20px; text-align: center; color: #fff; bottom: 50px; left: 50px; box-shadow: 0 2px 5px #000; z-index: 65535; font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei';" );
+                    layer = util.makeElement( "div", "position: fixed; padding: 30px; border-radius: 10px; background: rgba(0,0,0,.75); font-size: 20px; line-height: 20px; text-align: center; color: #fff; top: 50px; left: 50px; box-shadow: 0 2px 5px #000; z-index: 65535; font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei';" );
                     layer.innerHTML = "&#27491;&#22312;&#20998;&#26512;&#32593;&#39029; <span>...</span> <span>(0/0)</span>";
                     body.appendChild( layer );
                     host.documentElement.scrollTop = body.scrollTop = 0;
@@ -1267,7 +1334,6 @@ void function( window, factory ){
                     currentMode = "embed", pageBuilder, controllerBuilder;
 
                 var config = {
-                    frameHeight: 300,
                     windowWidth: 800,
                     windowHeight: 600
                 };
@@ -1310,13 +1376,13 @@ void function( window, factory ){
                     },
 
                     show: function(){
-                        var frameset, frame, window;
+                        var controller, page, window;
 
                         if( currentMode === "embed" ){
-                            frameset = document.getElementsByTagName( "frameset" )[ 0 ];
-                            frame = frameset.getElementsByTagName( "frame" )[ 1 ];
-                            frameset.rows = "*," + config.frameHeight;
-                            frame.noResize = false;
+                            controller = document.getElementById( "tracker_controller" ),
+                            page = document.getElementById( "tracker_page" ),
+                            controller.style.display = "block",
+                            page.style.top = "";
                         }else if( currentMode === "window" ){
                             window = this.getWindow( "tracker_controller" );
 
@@ -1331,13 +1397,13 @@ void function( window, factory ){
                     },
 
                     hide: function(){
-                        var frameset, frame;
+                        var controller, page;
 
                         if( currentMode === "embed" )
-                            frameset = document.getElementsByTagName( "frameset" )[ 0 ],
-                            frame = frameset.getElementsByTagName( "frame" )[ 1 ],
-                            frameset.rows = "*,0",
-                            frame.noResize = true;
+                            controller = document.getElementById( "tracker_controller" ),
+                            page = document.getElementById( "tracker_page" ),
+                            controller.style.display = "none",
+                            page.style.top = "0";
                         else if( currentMode === "window" )
                             controlWindow.close();
 
@@ -1367,6 +1433,7 @@ void function( window, factory ){
                         // name: tracker_main | tracker_page | tracker_controller
                         if( !arguments.length || name === "tracker_main" )
                             return window;     
+
                         if( currentMode === "window" && name === "tracker_controller" )
                             return controlWindow;
                         else
@@ -1387,11 +1454,13 @@ void function( window, factory ){
 
                             if( pageHtml ){
                                 window.name = "tracker_main";
-                                this.write( "tracker_main", util.format( View.templates.frameset, {
+
+                                this.write( "tracker_main", View.templates.frameset( {
                                     url: location.href,
                                     title: document.title, 
                                     charset: document.characterSet || "utf-8"
                                 } ) );
+
                                 this.write( "tracker_page", pageHtml );
                                 page = this.getWindow( "tracker_page" );
 
@@ -1545,7 +1614,7 @@ void function( window, factory ){
                 };
 
                 var codeTemplate = function( code ){
-                    return util.format( View.templates.codeListLine, withWidths( {
+                    return View.templates.codeListLine( withWidths( {
                         id: code.id,
 
                         index: ++ codeIndex,
@@ -1682,6 +1751,10 @@ void function( window, factory ){
                 }();
 
                 var setupBootstrapPatch = function(){
+                    var event;
+
+                    event = host.TrackerGlobalEvent;
+
                     var setupDropdownMenu = function(){
                         var lastOpen;
 
@@ -1693,6 +1766,7 @@ void function( window, factory ){
                                 util.removeClass( el, "open" );
                                 lastOpen = null;
                                 e.stopPropagation();
+                                event && event.fire( "bootstrap: dropdown.close" );
                             } );
 
                             Event.add( el, "click", function( e ){
@@ -1700,6 +1774,7 @@ void function( window, factory ){
                                 if( lastOpen && lastOpen != el )
                                     util.removeClass( lastOpen, "open" );
                                 lastOpen = el;
+                                event && event.fire( "bootstrap: dropdown.open" );
                                 e.stopPropagation();
                             } );
                         };
@@ -1709,25 +1784,42 @@ void function( window, factory ){
                             for( var i = 0, l = dropdowns.length; i < l; i ++ )
                                 setup( dropdowns[ i ] );
                             Event.add( document, "click", function(){
+                                var found;
+
                                 for( var i = 0, l = dropdowns.length; i < l; i ++ )
+                                    if( util.hasClass( dropdowns[ i ], "open" ) )
+                                        found = true,
                                     util.removeClass( dropdowns[ i ], "open" );
+
+                                if( found )
+                                    event && event.fire( "bootstrap: dropdown.close" );
                             } );
                         }
                     }();
 
                     var setupModalDialog = function(){
 
+                        var open = function( modal ){
+                            return function(){
+                                modal.style.display = "block";
+                                event && event.fire( "bootstrap: dialog.open" );
+                            }  
+                        };
+
                         var close = function( modal ){
                             return function(){
                                 modal.style.display = "none";
+                                event && event.fire( "bootstrap: dialog.close" );
                             }
                         };
 
                         var setup = function( modal ){
                             var closeBtns = modal.querySelectorAll( ".modal-header .close, .modal-footer .btn" );
                             var fclose = close( modal );
+                            var fopen = open( modal );
                             for( var i = 0, l = closeBtns.length; i < l; i ++ )
                                 Event.add( closeBtns[ i ], "click", fclose );
+                            modal.open = fopen;
                         };
 
                         return function(){
@@ -1792,6 +1884,21 @@ void function( window, factory ){
                         setupTab();
                     };
                 }();
+
+                var openShareLink = function(){
+                    var url, left, top;
+
+                    url = "http://service.weibo.com/share/share.php";
+                    url = util.param( url, "title", "%40dron%E5%BE%AE%E5%8D%9A%20%E6%88%91%E6%AD%A3%E5%9C%A8%E4%BD%BF%E7%94%A8%20Tracker%20%E6%8E%92%E6%9F%A5%E7%BD%91%E9%A1%B5%E4%B8%AD%E5%86%97%E4%BD%99%E7%9A%84%E8%84%9A%E6%9C%AC%EF%BC%8C%E6%8C%BA%E7%BB%99%E5%8A%9B%E7%9A%84%EF%BC%8C%E5%85%8D%E5%AE%89%E8%A3%85%EF%BC%8C%E7%9B%B4%E6%8E%A5%E5%9C%A8%E6%B5%8F%E8%A7%88%E5%99%A8%E4%B8%AD%E5%B0%B1%E8%83%BD%E7%94%A8%EF%BC%8C%E6%8E%A8%E8%8D%90%E5%A4%A7%E5%AE%B6%E8%AF%95%E8%AF%95%E3%80%82" );
+                    url = util.param( url, "url", encodeURIComponent( "http://ucren.com/tracker/" ) );
+
+                    left = ( screen.width - 680 ) / 2;
+                    top = ( screen.height - 380 ) / 2;
+
+                    global.open( url, "", "width=680, height=380, left=" + left + ", top=" + top + 
+                        ", toolbar=no, menubar=no, resizable=yes, status=no, " +
+                        "location=no, scrollbars=yes" );
+                };
 
                 var codeEl, codeIndex = 0;
 
@@ -1865,11 +1972,11 @@ void function( window, factory ){
                         elementCodeInfo = document.getElementById( "code-info" );
                         code = CodeList.get( id );
 
-                        elementCodeInfo.innerHTML = util.format( View.templates.controllerCodeInfo, {
+                        elementCodeInfo.innerHTML = View.templates.controllerCodeInfo( {
                             // id: code.id,
                             // index: ++ codeIndex,
                             fileName: code.fullUrl ? 
-                                util.format( View.templates.url, { url: code.fullUrl } ) : 
+                                View.templates.url( { url: code.fullUrl } ) : 
                                 "&#26469;&#33258;&#39029;&#38754;",
                             type: type( code ),
                             rate: rate( code ),
@@ -1910,35 +2017,70 @@ void function( window, factory ){
                         code.lastUpdate = util.time();
                     },
 
+                    activeTab: function( name ){
+                        // TODO: 需要改进下，使每个 tab 都有名称
+                        var topNav, baseIndex;
+
+                        topNav = document.getElementById( "top-nav" );
+                        baseIndex = 0;
+
+                        if( View.ControlFrame.getMode() == "embed" )
+                            baseIndex = 1;
+
+                        if( typeof name != "undefined" ){
+                            if( !topNav.active )
+                                return ;
+
+                            if( name == "code-list" )
+                                name = baseIndex + 0;
+
+                            topNav.active( name );                            
+                        }else{
+                            return topNav.actived;
+                        }
+                    },
+
+                    setControlPower: function( bool ){
+                        var parent, window, c;
+
+                        if( View.ControlFrame.getMode() == "embed" ){
+                            parent = View.ControlFrame.getWindow( "tracker_main" );
+                            window = View.ControlFrame.getWindow( "tracker_controller" );
+                            c = bool ? util.addClass : util.removeClass;
+                            // c( window.document.body, "control-power-mode" );
+                            c( parent.document.body, "control-power-mode" );
+                        }
+                    },
+
                     actions: function( acts ){
                         for( var name in acts )
                             actions[ name ] = acts[ name ];
                     },
 
                     htmlBuilder: function(){
-                        var pm = new promise;
+                        var pm = new promise, mode;
+
                         codeIndex = 0;
+                        mode = View.ControlFrame.getMode();
 
                         util.delay( function(){
-                            pm.resolve( util.format( View.templates.controllerPage, withWidths( {
+                            pm.resolve( View.templates.controllerPage( withWidths( {
                                 charset: global.document.characterSet || "utf-8",
                                 cachePhp: "http://www.ucren.com/tracker/cache.php?file=",
 
-                                shareLink: getShareLink,
+                                header: View.templates.controllerTopbar( {
+                                    mode: mode
+                                } ),
 
-                                // css: View.templates.controllerCSS,
-                                header: View.templates.controllerTopbar,
+                                codeList: View.templates.controllerCodeList( withWidths() ),
+                                codeDetail: View.templates.controllerCodeDetail(),
 
-                                codeList: util.format( View.templates.controllerCodeList, withWidths() ),
-                                codeDetail: View.templates.controllerCodeDetail,
-
-                                dialogAbout: View.templates.controllerDialogAbout,
-                                globalLoading: View.templates.controllerGlobalLoading,
-
+                                mode: mode,
                                 version: version,
                                 uid: host.tracker_uid
                             } ) ) );
                         } );
+
                         return pm;
                     },
 
@@ -2019,31 +2161,46 @@ void function( window, factory ){
                                     }
                                 }
                             }
+
+                            // mousewheel: function( e ){
+                            //     e.preventDefault();
+                            // }
                         } );
 
-                        if( !actions[ "code#close" ] )
+                        if( !actions[ "code#close" ] ){
                             actions[ "code#close" ] = function( e ){
                                 focusInList = true;
                                 View.ControlPanel.showCodeDetail( false );
                             };
 
-                        if( !actions[ "about#open" ] )
                             actions[ "about#open" ] = function(){
-                                document.getElementById( "dialog-about" ).style.display = "block";  
+                                document.getElementById( "dialog-about" ).open();
                             };
+
+                            actions[ "share#open" ] = openShareLink;
+                        }
 
                         if( View.ControlFrame.getMode() == "window" )
                             document.getElementById( "window-mode-trigger" ).innerHTML =
-                                "&#24182;&#21015;&#27169;&#24335;";
+                                "&#20869;&#23884;&#27169;&#24335;";
 
                         var lastScrollLeft = 0;
-                        Event.add( elementCodeContent, "scroll", function(){
+                        Event.add( elementCodeContent, {
+                            scroll: function( e ){
+
+                                if( this.scrollLeft == 0 )
+                                    this.scrollLeft = 1;
+
+                                if( this.scrollLeft == this.scrollWidth - this.clientWidth )
+                                    this.scrollLeft -= 1;
+
                             if( lastScrollLeft == this.scrollLeft )
                                 return ;
                             
                             var gutter = this.querySelector( ".gutter" );
                             gutter.style.left = this.scrollLeft + "px";
                             lastScrollLeft = this.scrollLeft;
+                            }
                         } );
 
                         setupBootstrapPatch();
@@ -2266,41 +2423,24 @@ void function( window, factory ){
 
                 util.intelligentGet( url ).then( function( data ){
                     content = data.response;
-                    code = new Code( url, content );
-
+                    code = new Code( url, content, util.handle( node ) );
                     code.setType( "append" );
                     code.loadConsum = data.consum;
                     CodeList.add( code );
-
                     node.removeAttribute( "src" );
-                    // node.setAttribute( "tracker-src", url );
+                    View.ControlPanel.addCode( code );
 
                     code.onReady( function(){
-                        var index;
-                        
-                        index = util.handle( node );
-                        
-                        node.appendChild(
-                            document.createTextNode( 
-                                "__trackerScriptStart__('" + code.id + "'," + index + ");" + 
-                                code.executiveCode + "; __trackerScriptEnd__('" +
-                                code.id + "');" ) );
-
+                        node.appendChild( document.createTextNode( code.executiveCode ) );
                         fn.apply( me, args );
                         node.src = url;
                     } );
-
-                    View.ControlPanel.addCode( code );
                 }, function(){
                     code = new Code( url );
                     code.setType( "append" );
                     code.setState( "timeout" );
                     CodeList.add( code );
-
-                    code.onReady( function(){
                         fn.apply( me, args );
-                    } );
-                    
                     View.ControlPanel.addCode( code );
                 } );
 
@@ -2375,8 +2515,7 @@ void function( window, factory ){
             var script, code;
             
             script = scriptTagIndex === undefined ? 
-                scriptElements[ scriptElements.length - 1 ] :
-                util.handle( scriptTagIndex );
+                scriptElements[ scriptElements.length - 1 ] : util.handle( scriptTagIndex );
 
             if( script && script.hasAttribute( "tracker-src" ) )
                 script.src = script.getAttribute( "tracker-src" );
@@ -2402,10 +2541,18 @@ void function( window, factory ){
         };
 
         window.onbeforeunload = function(){
+            var startTime = util.time();
+            return function(){
             Feedback.send();
             var now = util.time();
+                if( now - startTime < 3e3 )
+                    setTimeout( function(){
+                        var h = window.location.hash;
+                        window.location.href = ~h.indexOf( "#" ) ? h : "#" + h;
+                    }, 0 );
             while( util.time() - now < 500 );
-        };
+            }  
+        }();
     };
 
     var Tracker = function( host ){
@@ -2459,9 +2606,9 @@ void function( window, factory ){
                 } );
             },
 
-            addPanel: function( title, panelDefine ){
+            addPanel: function( title, panelDefine, activeHandler ){
                 this.onControllerLoad( function(){
-                    var window, document, topNav, panels, titleEl, panelEl;
+                    var window, document, topNav, panels, titleEl, panelEl, meIndex;
 
                     window = View.ControlFrame.getWindow( "tracker_controller" );
                     document = window.document;
@@ -2475,6 +2622,14 @@ void function( window, factory ){
 
                     panelEl = document.createElement( "li" );
                     panels.appendChild( panelEl );
+
+                    meIndex = topNav.childNodes.length - 1;
+
+                    if( activeHandler )
+                        topNav.tabEvent.on( "active", function( index ){
+                            if( index === meIndex )
+                                activeHandler();
+                        } );
 
                     panelDefine.call( panelEl, window, document );
                 } );
@@ -2505,17 +2660,10 @@ void function( window, factory ){
 
     // business logic
     void function(){
-        var currentCodeId, updateInterval, hookDebuggingCode, codes, 
-            pluginsUrlBase;
+        var currentCodeId, updateInterval, codes, pluginsUrlBase;
 
         controllerOnLoad = promise.fuze();
-        host.TrackerGlobalEvent = Event.bind();
         pluginsUrlBase = "http://www.ucren.com/tracker/cache.php?file=./plugins/";
-
-        hookDebuggingCode = function( content, code ){
-            return "__trackerScriptStart__('" + code.id + "');" + content + 
-                "; __trackerScriptEnd__('" + code.id + "');";
-        };
 
         View.ControlFrame.pageBuilder( function( html ){
             var pm = new promise,
@@ -2558,8 +2706,7 @@ void function( window, factory ){
                         CodeList.add( code );
 
                         code.onReady( function(){
-                            pm.resolve( openTag + hookDebuggingCode( code.executiveCode, code ) + 
-                                closeTag );
+                            pm.resolve( openTag + code.executiveCode + closeTag );
                             View.Loading.addProgress();
                         } );
 
@@ -2584,8 +2731,7 @@ void function( window, factory ){
 
                                 code.onReady( function(){
                                     View.Loading.addProgress();
-                                    pm.resolve( openTag + 
-                                        hookDebuggingCode( code.executiveCode, code ) + closeTag );
+                                    pm.resolve( openTag + code.executiveCode + closeTag );
                                 } );
                             }, function(){
                                 var code;
@@ -2593,12 +2739,9 @@ void function( window, factory ){
                                 code = new Code( url );
                                 code.setState( "timeout" );
                                 CodeList.add( code );
-
-                                code.onReady( function(){
                                     View.Loading.addProgress();
                                     pm.resolve( raw );
                                 } );
-                            } );
 
                             return pm;
                         }
@@ -2626,19 +2769,19 @@ void function( window, factory ){
 
         View.ControlFrame.controllerBuilder( View.ControlPanel.htmlBuilder );
 
-        View.ControlFrame.on( "pageLoad", function( window, document ){
-            var base, head;
+        // View.ControlFrame.on( "pageLoad", function( window, document ){
+            // var base, head;
 
             // TODO: 如果页面本身已有 base 标签？
-            base = document.createElement( "base" );
-            head = document.head || document.getElementsByTagName( "head" )[0];
-            base.setAttribute( "target", "tracker_main" );
-            head.appendChild( base );
+            // base = document.createElement( "base" );
+            // head = document.head || document.getElementsByTagName( "head" )[0];
+            // base.setAttribute( "target", "tracker_main" );
+            // head.appendChild( base );
 
-            Event.add( window, "unload", function(){
-                location.assign( location.href );
-            } );
-        } );
+            // Event.add( window, "unload", function(){
+            //     location.assign( location.href );
+            // } );
+        // } );
 
         View.ControlFrame.on( "controllerLoad", function( window, document ){
             View.ControlPanel.bindWindow( window );
@@ -2648,9 +2791,14 @@ void function( window, factory ){
 
             if( currentCodeId )
                 View.ControlPanel.showCodeDetail( currentCodeId );
+
+            document.getElementById( "top-nav" ).tabEvent.on( "active", function( index ){
+                View.ControlPanel.setControlPower( index > 0 );
+            } );
         } );
 
         View.ControlFrame.on( "hide", function(){
+            // TODO: clearInterval 了，检查一下有哪个地方继续启动
             clearInterval( updateInterval );
         } );
 
@@ -2670,6 +2818,17 @@ void function( window, factory ){
         controllerOnLoad( function( window, document ){
             var waitTime, loadingEl;
 
+            global.onbeforeunload = function(){
+                var startTime = util.time();
+                return function(){
+                    if( util.time() - startTime < 3e3 )
+                        setTimeout( function(){
+                            var h = global.location.hash;
+                            global.location.href = ~h.indexOf( "#" ) ? h : "#" + h;
+                        }, 0 );
+                }
+            }();
+
             Feedback.setAnalysisEnd();
 
             waitTime = document.getElementById( "waitTime" );
@@ -2677,7 +2836,10 @@ void function( window, factory ){
             loadingEl.style.display = "block";
             
             util.onCpuFree( function(){
-                loadingEl.style.display = "none";
+                loadingEl.style.height = "0";
+                setTimeout( function(){
+                    loadingEl.parentNode.removeChild( loadingEl );
+                }, 5e2 );
             }, function( t ){
                 waitTime.innerHTML = "(" + (t / 1000).toFixed( 3 ) + "s)";
             } );
@@ -2685,16 +2847,39 @@ void function( window, factory ){
             updateInterval = setInterval( function(){
                 if( !codes )
                     return ;
+
                 util.forEach( codes, function( code ){
                     if( !code.lastUpdate || code.lastUpdate < code.lastModified )
                         View.ControlPanel.updateCode( code );
                 } );
             }, 3e3 );
+
+            host.TrackerGlobalEvent.on( "bootstrap: dropdown.open", function(){
+                if( View.ControlPanel.activeTab() == 0 )
+                    View.ControlPanel.setControlPower( true );
+            } );
+
+            host.TrackerGlobalEvent.on( "bootstrap: dropdown.close", function(){
+                if( View.ControlPanel.activeTab() == 0 )
+                    View.ControlPanel.setControlPower( false );
+            } );
+
+            host.TrackerGlobalEvent.on( "bootstrap: dialog.open", function(){
+                setTimeout( function(){ // trigger by dropdown
+                    if( View.ControlPanel.activeTab() == 0 )
+                        View.ControlPanel.setControlPower( true );
+                }, 1 );
+            } );
+
+            host.TrackerGlobalEvent.on( "bootstrap: dialog.close", function(){
+                if( View.ControlPanel.activeTab() == 0 )
+                    View.ControlPanel.setControlPower( false );
         } );
 
-        // setTimeout( function(){
-        //     Plugins.setup( pluginsUrlBase + "general.js&version=20130421" + Math.random() );
-        // }, 100 );
+            setTimeout( function(){
+                Plugins.setup( pluginsUrlBase + "general.js&version=20130429" + Math.random() );
+            }, 5e2 );
+        } );
     }();
 } );
 

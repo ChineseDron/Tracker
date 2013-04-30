@@ -13,7 +13,7 @@
         <header>
             <div class="container">
                 <h1>Tracker</h1>
-                <p class="lead">关注您网页的健康</p>
+                <p class="lead">别让包袱成为网页运行时的负担</p>
             </div>
         </header>
         <div id="main">
@@ -37,8 +37,8 @@
                     <div class="span9">
                         <div class="screenful">
                             <h2 id="overview">1 概述</h2>
-                            <p>Tracker 是一个运行于浏览器书签栏的 JavaScript 嗅探工具，她将被启动于其他网页之后，为了协助您了解目标网页中 JavaScript 的运行情况，包括：执行覆盖率、执行行数、是否存在执行或语法错误等信息，当你对一个目标网页使用 Tracker，他们将被呈现在像下面截图所示的一个表格当中在目标网页下边。</p>
-                            <p class="screenshot"><img src="img/blank.png" data-original="img/screenshot.png" class="img-rounded img-polaroid"></p>
+                            <p>Tracker 是一个运行于浏览器书签栏的 JavaScript 嗅探工具，她将被启动于其他网页之后，为了协助您了解目标网页中 JavaScript 的运行情况，包括：执行覆盖率、执行行数、是否存在执行或语法错误等信息，当你对一个目标网页使用 Tracker，该网页的上方将加载进来一个 Tracker 导航栏。</p>
+                            <p class="screenshot"><img src="img/blank.png" data-original="img/screenshot.png?v=1" class="img-rounded img-polaroid"></p>
                             <p class="text-center"><a href="#quickstart" class="btn btn-primary btn-large">不用安装，快速开始</a></p>
                         </div>
                         
@@ -78,8 +78,8 @@
                         <div class="screenful">
                             <h2 id="features">4 功能说明</h2>
 
-                            <h3>4.1 资源列表</h3>
-                            <p>在呼出 Tracker 面板后，您将看到一个列表，这个列表显示出当前网页所用到的所有 JS 资源：</p>
+                            <h3>4.1 代码列表</h3>
+                            <p>在呼出 Tracker 面板后，您将看到一个列表，这个列表显示出当前网页所用到的所有 JS 代码：</p>
                             <p>
                                 <ul class="funlist">
                                     <li>
@@ -160,6 +160,9 @@
                             <h3>4.2 代码面板</h3>
                             <p>当您点击表格中某一行，此时在表格右侧出现一个代码框，用于显示当前 JS 资源解压后的代码，执行经过的语句或表达式用蓝底黑字表示，没有经过的代码为白底。</p>
                             <p class="text-center code-panel"><img src="img/blank.png" data-original="img/screenshot-code.png" class="img-rounded img-polaroid"></p>
+
+                            <h3>4.3 综合结果</h3>
+                            <p>待续...</p>
                         </div>
 
                         <div class="screenful">
@@ -224,21 +227,16 @@
                                     </tr>
                                     <tr>
                                         <td>3</td>
-                                        <td>资源详情</td>
-                                        <td>在代码面板加入 tab 切换，可选”代码视图“和”简介视图“</td>
-                                    </tr>
-                                    <tr>
-                                        <td>4</td>
                                         <td>错误详情</td>
                                         <td>目前的版本只告诉有没有错误，但没有告诉错误是什么</td>
                                     </tr>   
                                     <tr>
-                                        <td>5</td>
+                                        <td>4</td>
                                         <td>当前网页综述</td>
                                         <td>通过科学计算，给出综合结果</td>
                                     </tr>
                                     <tr>
-                                        <td>6</td>
+                                        <td>5</td>
                                         <td>更多</td>
                                         <td>期待您的参与</td>
                                     </tr>                              
@@ -260,6 +258,10 @@
                                     <h4>由 document.write 引入的脚本是否纳入统计？</h4>
                                     <p>目前还没有这部分内容，以后会考虑支持。</p>
                                 </li>
+                                <li>
+                                    <h4>为什么我在某些网页上使用 Tracker，网页会跳走？</h4>
+                                    <p>Tracker 启动后会将该网页放置到 iframe 中，该网页可能写了防止嵌入的代码，当被 iframe 嵌入时修改 top.location 导致页面跳转，Tracker 也一直在防止地址被跳走，目前已能在大部分禁止 iframe 嵌入的网页当中使用。</p>
+                                </li>
                             </ol>
                         </div>
                         <div class="screenful screenful-last">
@@ -275,7 +277,7 @@
                             </p>
 
                             <p>Tracker 需要您帮忙推广，您可通过微博帮我们传播，举手之劳便是对 Tracker 很大的帮忙，点击下面的链接：</p>
-                            <p><a class="striking recommend" href="http://service.weibo.com/share/share.php?title=%40dron%E5%BE%AE%E5%8D%9A%20%E6%88%91%E6%AD%A3%E5%9C%A8%E4%BD%BF%E7%94%A8%20Tracker%20%E6%8E%92%E6%9F%A5%E7%BD%91%E9%A1%B5%E4%B8%AD%E5%86%97%E4%BD%99%E7%9A%84%E8%84%9A%E6%9C%AC%EF%BC%8C%E6%8C%BA%E7%BB%99%E5%8A%9B%E7%9A%84%EF%BC%8C%E5%85%8D%E5%AE%89%E8%A3%85%EF%BC%8C%E7%9B%B4%E6%8E%A5%E5%9C%A8%E6%B5%8F%E8%A7%88%E5%99%A8%E4%B8%AD%E5%B0%B1%E8%83%BD%E7%94%A8%EF%BC%8C%E6%8E%A8%E8%8D%90%E5%A4%A7%E5%AE%B6%E8%AF%95%E8%AF%95%E3%80%82&url=http%3A%2F%2Fucren.com%2Ftracker%2F" target="_blank">推荐给好友</a></p>
+                            <p><a class="striking recommend" href="#" onclick="return false;">推荐给好友</a></p>
                         </div>
                     </div>
                 </div>
