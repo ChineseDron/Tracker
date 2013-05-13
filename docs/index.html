@@ -7,7 +7,7 @@
         <meta name="author" content="dron">
         <link href="http://ucren.com/favicon.ico" rel="shortcut icon">
         <link href="../cache.php?file=./bootstrap/css/bootstrap.min.css&amp;version=20130416" rel="stylesheet" media="screen">
-        <link href="css/docs.css" rel="stylesheet" media="screen">
+        <link href="../cache.php?file=./docs/css/docs.css&amp;version=20130513" rel="stylesheet" media="screen">
     </head>
     <body data-spy="scroll" data-target=".sidebar">
         <header>
@@ -39,7 +39,9 @@
                             <h2 id="overview">1 概述</h2>
                             <p>Tracker 是一个运行于浏览器书签栏的 JavaScript 嗅探工具，她将被启动于其他网页之后，为了协助您了解目标网页中 JavaScript 的运行情况，包括：执行覆盖率、执行行数、是否存在执行或语法错误等信息，当你对一个目标网页使用 Tracker，该网页的上方将加载进来一个 Tracker 导航栏。</p>
                             <p class="screenshot"><img src="img/blank.png" data-original="img/screenshot.png?v=1" class="img-rounded img-polaroid"></p>
-                            <p class="text-center"><a href="#quickstart" class="btn btn-primary btn-large">不用安装，快速开始</a></p>
+                            <p class="text-center">
+                                <a href="#quickstart" class="btn btn-primary btn-large">不用安装，快速开始</a>
+                            </p>
                         </div>
                         
                         <div class="screenful">
@@ -73,6 +75,11 @@
                             <h3>3.2 我想留着以后用</h3>
                             <p>我们希望您将以下链接添加到（拖放到）您的书签栏里，这样能方便您今后的使用：打开指定网页后，再点击书签栏里的 “Tracker!” 链接。</p>
                             <p><a class="striking bookmarks replace-uid" href="javascript:void%20function(t,r,a,c,k){t.tracker_type='bm';t.tracker_uid='$uid';(k=t.TrackerGlobalEvent)?k.f(r):[(k=t[a]('script')).charset='utf-8',k.src='http://www.ucren.com/'+c+'/'+c+'.js?'+Math.random(),t.documentElement.appendChild(k)]}(document,'TrackerJSLoad','createElement','tracker')" onclick="return false;" ICON="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABfElEQVQ4jZWRMU4bQRSGv9l9b1aIkI7Wl0Ckw3TgAoE4BCksn4ADcAKUwgKK3MDiHIBEKDEoJmDLihunSMO8SbHr3Y3sYPJLU4xm3vfP/4/r9S6PDLpmEYgsl8MlDuDz4f7embyadT9tbvBxbY0Ybfm4S5j+mnJ9c9sFzsTM6Pcf2G5uvcM919X1DR9WVwFIzIyVlQyAdrvNcDRmOBrT6XQYjsYMnn6U6/vgCQDvlWABAAnBEPHFgSfzCoCqknnF1XrJewIRxez3DBBQzYdijIhKOSAqpRNAEmcAIVrel5gFfAFwxeFMaZqSpmm5jwXA61yE6tLzy0t5OUmShQDVtIpTj9BsNvlyegrATquFc24hIO+gjGBokXv/4IDdVguALMsIISCLAKpYGcEMkapE7/1fERZJRYizCFaLUH/uW1JVQrCqA5wD+KfjHMBrFSd/quPb3R35Ry5TpNFoMJlMckC/f39yfvH1+F3WNT0+PpxQWK4Djf8FAIMY488/evu2X2yZIY8AAAAASUVORK5CYII=" title="拖放此链接到您的书签栏" data-content="如果您的浏览器没有显示书签栏，请先呼出它：<br />Chrome/Safari(win) 的热键是 ctrl-shift-B<br />Chrome/Safari(mac) 的热键是 command-shift-B">Tracker!</a></p>
+
+                            <h3>3.3 另有 Chrome 插件版本</h3>
+                            <p class="for-fehelper">
+                                感谢 <a href="http://www.baidufe.com" target="_blank">@Alienfe</a> 提供 FeHelper 的集成，<a class="setup-fehelper" href="#" onclick="return false;">点此安装 FeHelper</a> 
+                            </p>
                         </div>
                         
                         <div class="screenful">
@@ -292,6 +299,6 @@
         <script src="../cache.php?file=./bootstrap/js/jquery.min.js&amp;version=20130416"></script>
         <script src="../cache.php?file=./docs/js/jquery.lazyload.min.js&amp;version=20130419"></script>
         <script src="../cache.php?file=./bootstrap/js/bootstrap.min.js&amp;version=20130416"></script>
-        <script src="js/docs.js"></script>
+        <script src="../cache.php?file=./docs/js/docs.js&amp;version=20130513"></script>
     </body>
 </html>

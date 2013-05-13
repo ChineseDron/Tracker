@@ -52,6 +52,7 @@ table.compact-width th{ padding: 8px 5px; }
 #code-detail .code-toolbar .image{ width: 16px; height: 16px; border: 1px solid #ccc; }
 #code-detail .code-toolbar .arrive{ background-color: #bddbef; }
 #code-detail .code-toolbar .unarrive{ background-color: #fff; }
+#code-detail .code-toolbar .hooking{ background-color: #ffba93; }
 
 #code-detail-body{ top: 43px; bottom: 0; left: 0; right: 0; }
 
@@ -60,7 +61,8 @@ table.compact-width th{ padding: 8px 5px; }
 #code-content .gutter{ position: absolute; left: 0; top: 0; width: 50px; background-color: #fafafa; text-align: right; padding: 5px; z-index: 1; }
 #code-content .gutter pre{ color: #ccc; }
 #code-content .lines{ position: absolute; left: 60px; top: 0; padding: 5px; }
-#code-content .lines .arrive{ background-color: #bddbef; padding: 0 3px; border-radius: 2px; margin-left: -3px; color: #000; }
+#code-content .lines .arrive{ padding: 0 3px; border-radius: 2px; margin-left: -3px; }
+#code-content .lines .arrive-1{ background-color: #bddbef; color: #000; }
 #code-content .timeout-code, #code-content .empty-code{ padding: 10px; color: #ccc; }
 
 #code-info{ padding: 30px; }
@@ -68,7 +70,7 @@ table.compact-width th{ padding: 8px 5px; }
 #code-info .group dt{ display: block; float: left; width: 90px; }
 #code-info .group dd{ display: block; margin-left: 90px; }
 
-w#loading{ text-align: left; display: none; height: 42px; overflow: hidden; -webkit-transition: height .5s ease; -moz-transition: height .5s ease; -o-transition: height .5s ease; transition: height .5s ease; }
+#loading{ text-align: left; display: none; height: 42px; overflow: hidden; -webkit-transition: height .5s ease; -moz-transition: height .5s ease; -o-transition: height .5s ease; transition: height .5s ease; }
 #loading .navbar-inner{ border-left: 0; box-shadow: none; }
 #loading span{ color: #000; font-size: 14px; line-height: 40px; display: inline-block; text-shadow: 0 1px 0 white; }
 #loading span#waitTime{ padding-left: 10px; }

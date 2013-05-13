@@ -1,6 +1,6 @@
 /** 
  * Tracker Analyzer
- * @version 1.8.2
+ * @version 1.8.9
  * @author dron
  * @create 2012-12-22
  */
@@ -9,9 +9,6 @@ void function( window, factory ){
     var host;
     
     host = window.document;
-
-    if( !window.Tracker )
-        window.Tracker = host;
 
     if( window != window.parent )
         return ;
@@ -25,9 +22,9 @@ void function( window, factory ){
     host.TrackerGlobalEvent.fire( "TrackerJSLoad" );
 
 }( this, function( window ){
-    var global, host, location, slice, floor, max, push, join, version, controllerOnLoad;
+    var global, host, location, slice, floor, max, ceil, push, join, version, controllerOnLoad;
 
-    version = "1.8.2";
+    version = "1.8.9";
     global = window;
     host = global.document;
     location = global.location;
@@ -36,8 +33,11 @@ void function( window, factory ){
     join = [].join;
     floor = Math.floor;
     max = Math.max;
+    ceil = Math.ceil;
 
     var util = host.util = function(){
+        var fileNameSplitWord = /[?#]/;
+
         var excapeRegx = function(){
             var specials, regx;
 
@@ -137,11 +137,20 @@ void function( window, factory ){
                         iterator( unknow.charAt( i ), i, unknow );
             },
 
-            id: function( id ){
+            // map: function( array, fn ){
+            //     for( var i = 0, l = array.length; i < l; i ++ )
+            //         array[ i ] = fn( array[ i ], i, array );
+            // },
+
+            id: function(){
+                return "_" + this.nid();
+            },
+
+            nid: function( id ){
                 return function(){
-                    return "_" + id ++;
+                    return id ++;
                 }
-            }( 0 ),
+            }( 1 ),
 
             handle: function(){
                 var cache, number;
@@ -196,6 +205,27 @@ void function( window, factory ){
 
                 return el;
             },
+
+            getHtmlComments: function(){
+                var cn, push;
+                
+                cn = document.COMMENT_NODE;
+                push = [].push;
+
+                return function f( node ){
+                    var result, c, l, i;
+
+                    result = [];
+
+                    if( node.nodeType == cn )
+                        result.push( node.nodeValue );
+                    else if( c = node.childNodes, l = c.length )
+                        for( i = 0; i < l; i ++ )
+                            push.apply( result, f( c[ i ] ) );
+                    
+                    return result;
+                }
+            }(),
 
             findParent: function( el, tag, endOf ){
                 do{
@@ -339,15 +369,8 @@ void function( window, factory ){
             excapeRegx: excapeRegx,
 
             fileName: function( url ){
-                var start, end;
-
-                start = url.lastIndexOf( "/" );
-                end = max( url.indexOf( "#" ), url.indexOf( "?" ) );
-
-                if( end == -1 || end == start + 1 )
-                    end = url.length;
-
-                return url.slice( start + 1, end );
+                url = url.split( fileNameSplitWord )[ 0 ];
+                return url.slice( url.lastIndexOf( "/" ) + 1 );
             },
 
             time: function(){
@@ -508,6 +531,8 @@ void function( window, factory ){
                     url = base.href;
                 else
                     url = document.URL;
+
+                url = url.split( /[?#]/ )[ 0 ];
 
                 return url.slice( 0, url.lastIndexOf( "/" ) + 1 );
             },
@@ -856,9 +881,8 @@ void function( window, factory ){
             this.CodeInstance = CodeInstance;
             this.code = null;
             this.errorMessage = null;
-
             this.onReady = promise.fuze();
-            // util.delay( util.bind( function(){
+
             try{
                 this.code = host.combocodegen( CodeInstance );
             }catch(e){
@@ -908,7 +932,7 @@ void function( window, factory ){
             },
 
             getViewHtmlByLines: function(){
-                var code, lines;
+                var code, lines, firstId;
 
                 code = this.code || this.CodeInstance.origContent;
 
@@ -920,13 +944,18 @@ void function( window, factory ){
                 code = code.replace( comboCodeBoundaryRegx, "" );
                 lines = util.splitToLines( code );
 
-                util.forEach( lines, function( line, index ){
-                    var firstId;
+                // util.forEach( lines, function( line, index ){
+                //     var firstId;
 
-                    firstId = line.match( lineFirstIdRegx );
+                //     firstId = line.match( lineFirstIdRegx );
 
-                    if( firstId )
-                        StatusPool.beginOfLineSnippetPut( firstId[1] );
+                //     if( firstId )
+                //         StatusPool.beginOfLineSnippetPut( firstId[1] );
+                // } );
+
+                util.forEach( lines, function( line ){
+                    if( firstId = line.match( lineFirstIdRegx ) )
+                        StatusPool.snippetGroupCoverLineAdd( firstId[ 1 ] );
                 } );
 
                 return lines;
@@ -964,6 +993,10 @@ void function( window, factory ){
                 return codes;
             },
 
+            each: function( fn ){
+                util.forEach( codes, fn );
+            },
+
             sort: function(){
                 for( var i = codes.length - 1, r; i >= 0; i -- ){
                     r = codes[ i ];
@@ -972,9 +1005,9 @@ void function( window, factory ){
                         codes.push( r );
                 }
 
-                // util.forEach( codes, function( code, index ){
-                //     code.index = index;
-                // } );
+                util.forEach( codes, function( code, index ){
+                    code.index = index;
+                } );
             },
 
             count: function(){
@@ -1001,8 +1034,9 @@ void function( window, factory ){
                                 ".fullness{ position: absolute; left: 0; right: 0; top: 0; bottom: 0; }",
                                 "#wrapper{}",
                                 "#tracker_controller{ z-index: 10; }",
-                                "#tracker_page{ top: 43px; z-index: 20; }",
+                                "#tracker_page{ top: 43px; z-index: 20; background-color: #fff; }",
                                 "body.control-power-mode #tracker_page{ z-index: 0; }",
+                                "body.hidden-page-mode #tracker_page{ display: none; }",
                                 "iframe{ border: 0; width: 100%; height: 100%; }",
                             "</style>",
                     "</head>",
@@ -1023,7 +1057,7 @@ void function( window, factory ){
                         "<meta name='author' content='dron'>",
                         "<title>Tracker!</title>",
                         "<link href='<%= cachePhp %>./bootstrap/css/bootstrap.min.css&amp;version=2013041602' type='text/css' rel='stylesheet' />",
-                        "<link href='<%= cachePhp %>./controller-resources/controller.css&amp;version=20130429" + Math.random() + "' type='text/css' rel='stylesheet' />",
+                        "<link href='<%= cachePhp %>./controller-resources/controller.css&amp;version=20130514' type='text/css' rel='stylesheet' />",
                     "</head>",
                     "<body>",
                         "<%= header %>",
@@ -1044,7 +1078,7 @@ void function( window, factory ){
                                 "<h3>Tracker</h3>",
                             "</div>",
                             "<div class='modal-body'>",
-                                "<p>&#24403;&#21069;&#29256;&#26412;&#65306;<%= version %></p>",
+                                "<p>&#24403;&#21069;&#29256;&#26412;&#65306;<%= version %>&nbsp;&#65288;<a href='http://www.ucren.com/tracker/docs/#changelog' target='_blank'>&#25913;&#36827;&#21382;&#21490;</a>&#65289;</p>",
                                 "<p>&#25480;&#26435;&#32473;&#65306;<%= uid %></p>",
                             "</div>",
                             "<div class='modal-footer'>",
@@ -1070,9 +1104,9 @@ void function( window, factory ){
                             "<ul id='top-nav' class='nav pull-left' data-target='pages'>",
                                 "<% if( mode == 'embed' ){ %>",
                                     "<li class='active'><a href='' onclick='return false'>&#24403;&#21069;&#32593;&#39029;</a></li>",
-                                    "<li><a href='' onclick='return false'>&#20195;&#30721;&#21015;&#34920;</a></li>",
+                                    "<li data-name='code-list'><a href='' onclick='return false'>&#20195;&#30721;&#21015;&#34920;</a></li>",
                                 "<% }else{ %>",
-                                "<li class='active'><a href='' onclick='return false'>&#20195;&#30721;&#21015;&#34920;</a></li>",
+                                    "<li class='active' data-name='code-list'><a href='' onclick='return false'>&#20195;&#30721;&#21015;&#34920;</a></li>",
                                 "<% } %>",
                             "</ul>",
                             "<ul class='nav pull-right'>",
@@ -1160,6 +1194,8 @@ void function( window, factory ){
                                     "</ul>",
                                 "</li>",
                                 
+                                "<li class='label-like right tab-desc tab-desc-0'>&#26032;&#27963;&#21160;</li>",
+                                "<li class='image-like right tab-desc tab-desc-0'><div class='hooking image'></div></li>",
                                 "<li class='label-like right tab-desc tab-desc-0'>&#26410;&#25191;&#34892;</li>",
                                 "<li class='image-like right tab-desc tab-desc-0'><div class='unarrive image'></div></li>",
                                 "<li class='label-like right tab-desc tab-desc-0'>&#24050;&#25191;&#34892;</li>",
@@ -1258,7 +1294,7 @@ void function( window, factory ){
                 var create = function(){
                     var span;
 
-                    layer = util.makeElement( "div", "position: fixed; padding: 30px; border-radius: 10px; background: rgba(0,0,0,.75); font-size: 20px; line-height: 20px; text-align: center; color: #fff; top: 50px; left: 50px; box-shadow: 0 2px 5px #000; z-index: 65535; font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei';" );
+                    layer = util.makeElement( "div", "position: fixed; padding: 30px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 10px; background: #000; font-size: 20px; line-height: 20px; text-align: center; color: #fff; top: 50px; left: 50px; box-shadow: 0 0 5px #fff; z-index: 65535; font-family: 'Courier New', 'Heiti SC', 'Microsoft Yahei';" );
                     layer.innerHTML = "&#27491;&#22312;&#20998;&#26512;&#32593;&#39029; <span>...</span> <span>(0/0)</span>";
                     body.appendChild( layer );
                     host.documentElement.scrollTop = body.scrollTop = 0;
@@ -1507,19 +1543,42 @@ void function( window, factory ){
                     },
 
                     write: function( name, content ){
-                        var document;
+                        var document, i, l, t, timer, write;
+
                         document = this.getWindow( name ).document;
                         document.open( "text/html", "replace" );
+
+                        if( name == "tracker_page" ){
+                            i = 0;
+                            t = 10240; // 10k/ms
+
+                            l = content.length;
+
+                            write = function(){
+                                c = content.substr( i, t );
+                                document.write( c );
+                                i += t;
+
+                                if( i > l )
+                                    document.close(),
+                                    clearInterval( timer );
+                            };
+
+                            timer = setInterval( write, 1 );
+                        }else{
                         document.write( content );
                         document.close();
+                    }
                     }
                 } );
             }(),
 
             ControlPanel: function(){
-                var actions, window, document, currentSelectedCode;
+                var actions, window, document, currentSelectedCode, updateInterval, codeEl, 
+                    codeIndex;
                 
                 actions = {};
+                codeIndex = 0;
 
                 var rate = function( code ){
                     var r, c;
@@ -1662,7 +1721,7 @@ void function( window, factory ){
                 var asnyShowCode = function(){
                     var timer, timeout, interval, prepare, partCount, nowIndex, init,
                         currentDisposeLines, gutterEl, linesEl, regx1, regx2, ckeyIdRegx, result, 
-                        linesCount, h1, h2;
+                        linesCount, h1, h2, focusOnFlag, focusOnFlagTarget;
 
                     timeout = 1;
                     partCount = 100;
@@ -1694,7 +1753,7 @@ void function( window, factory ){
                     };
 
                     interval = function(){
-                        var t, p1, p2;
+                        var t, p1, p2, a;
 
                         h1.length = h2.length = 0;
 
@@ -1708,8 +1767,19 @@ void function( window, factory ){
                                 .replace( regx2, ">" );
 
                             t = t.replace( ckeyIdRegx, function( all, id ){
-                                return StatusPool.arrivedSnippetGet( id ) ? 
-                                    all + " class='arrive'" : all;
+                                a = StatusPool.arrivedSnippetGet( id );
+
+                                if( a & 2 )
+                                    a = 2;
+                                else if( a & 1 )
+                                    a = 1;
+
+                                if( focusOnFlag && !focusOnFlagTarget && focusOnFlag == a ){
+                                    focusOnFlagTarget = id;
+                                    focusOnFlag = 0;
+                                }
+
+                                return a ? all + " class='arrive arrive-" + a + "'" : all;
                             } );
 
                             h1.push( util.tag( nowIndex + 1, "pre" ) );
@@ -1726,10 +1796,17 @@ void function( window, factory ){
 
                         gutterEl.appendChild( p1 );
                         linesEl.appendChild( p2 );
+
+                        if( focusOnFlagTarget ){
+                            document.getElementById( "ckey-" + focusOnFlagTarget ).scrollIntoView();
+                            focusOnFlagTarget = undefined;
+                        }
                     };
 
-                    result = function( code ){
+                    result = function( code, _focusOnFlag ){
                         init();
+
+                        focusOnFlag = _focusOnFlag;
 
                         if( code.state == "empty" ){
                             codeEl.innerHTML = "<div class='empty-code'>" +
@@ -1850,7 +1927,8 @@ void function( window, factory ){
                                 util.addClass( bodys[ index ], "tab-content-active" );
 
                                 tab.actived = index;
-                                tab.tabEvent.fire( "active", index );
+                                tab.tabEvent.fire( "active", 
+                                    index, heads[ index ].getAttribute( "data-name" ) );
                             };
 
                             Event.add( tab, "click", function( e ){
@@ -1867,7 +1945,7 @@ void function( window, factory ){
                                 } );
                             } );
 
-                            tab.tabEvent = Event.bind({});
+                            tab.tabEvent = Event.bind();
                             tab.actived = 0;
                         };
 
@@ -1900,7 +1978,12 @@ void function( window, factory ){
                         "location=no, scrollbars=yes" );
                 };
 
-                var codeEl, codeIndex = 0;
+                var autoUpdateCodeFn = function(){
+                    CodeList.each( function( code ){
+                        if( !code.lastUpdate || code.lastUpdate < code.lastModified )
+                            View.ControlPanel.updateCode( code );
+                    } );
+                };
 
                 return Event.bind( {
                     bindWindow: function( win ){
@@ -1929,7 +2012,7 @@ void function( window, factory ){
                         }
                     },
 
-                    showCodeDetail: function( id ){
+                    showCodeDetail: function( id, focusOnFlag ){
                         var codeDetailHeadTab, actived;
 
                         codeDetailHeadTab = document.getElementById( "code-detail-head" );
@@ -1941,11 +2024,10 @@ void function( window, factory ){
                             id ? "block" : "none";
 
                         if( id ){
-                            if( actived === 0 ){
-                                this.showCode( id );
-                            }else if( actived == 1 ){
-                                this.showCodeInfo( id );
-                            }
+                            if( actived === 0 )
+                                this.showCode( id, focusOnFlag );
+                            else if( actived == 1 )
+                                this.showCodeInfo( id, focusOnFlag );
 
                             var elementListCodes = document.getElementById( "list-codes" );
                             var trs = elementListCodes.querySelectorAll( "tr" );
@@ -1959,14 +2041,14 @@ void function( window, factory ){
                         }
                     },
 
-                    showCode: function( id ){
+                    showCode: function( id, focusOnFlag ){
                         if( id ){
                             code = CodeList.get( id );
-                            asnyShowCode( code );
+                            asnyShowCode( code, focusOnFlag );
                         }
                     },
 
-                    showCodeInfo: function( id ){
+                    showCodeInfo: function( id, focusOnFlag ){
                         var elementCodeInfo, code;
 
                         elementCodeInfo = document.getElementById( "code-info" );
@@ -2017,8 +2099,15 @@ void function( window, factory ){
                         code.lastUpdate = util.time();
                     },
 
+                    autoUpdateCodeStart: function(){
+                        updateInterval = setInterval( autoUpdateCodeFn, 5e2 );
+                    },
+
+                    autoUpdateCodeStop: function(){
+                        clearInterval( updateInterval );
+                    },
+
                     activeTab: function( name ){
-                        // TODO: 需要改进下，使每个 tab 都有名称
                         var topNav, baseIndex;
 
                         topNav = document.getElementById( "top-nav" );
@@ -2040,15 +2129,17 @@ void function( window, factory ){
                         }
                     },
 
-                    setControlPower: function( bool ){
-                        var parent, window, c;
+                    setControlPower: function( bool, hiddenPage ){
+                        var parent, window, b, c1, c2;
 
                         if( View.ControlFrame.getMode() == "embed" ){
                             parent = View.ControlFrame.getWindow( "tracker_main" );
                             window = View.ControlFrame.getWindow( "tracker_controller" );
-                            c = bool ? util.addClass : util.removeClass;
-                            // c( window.document.body, "control-power-mode" );
-                            c( parent.document.body, "control-power-mode" );
+                            c1 = bool ? util.addClass : util.removeClass;
+                            c2 = hiddenPage ? util.addClass : util.removeClass;
+                            b = parent.document.body;
+                            c1( b, "control-power-mode" );
+                            c2( b, "hidden-page-mode" );
                         }
                     },
 
@@ -2122,11 +2213,16 @@ void function( window, factory ){
                             },
 
                             keydown: function( e ){
-                                // command + R, F5
+                                
                                 var selectId;
 
-                                if( ( e.metaKey && e.keyCode == 82 ) || e.keyCode == 116 ) 
+                                // command + R, F5
+                                if( ( e.metaKey && e.keyCode == 82 ) || e.keyCode == 116 ){
+                                    if( View.ControlFrame.getMode() == "window" ){
                                     e.preventDefault && e.preventDefault();
+                                    }
+                                }
+                                
                                 if( focusInList && currentSelectedCode ){
                                     var offset = 0;
                                     if( e.keyCode == 38 ){ // up
@@ -2206,8 +2302,11 @@ void function( window, factory ){
                         setupBootstrapPatch();
 
                         elementCodeDetailHead.tabEvent.on( "active", function( index ){
-                            if( index == 1 && this.currentShown != currentSelectedCode ){
+                            if( this.currentShown != currentSelectedCode ){
                                 this.currentShown = currentSelectedCode;
+                                if( index == 0 )
+                                    View.ControlPanel.showCode( currentSelectedCode );
+                                else if( index == 1 )
                                 View.ControlPanel.showCodeInfo( currentSelectedCode );
                             }
 
@@ -2353,52 +2452,70 @@ void function( window, factory ){
     };
 
     var StatusPool = host.StatusPool = function(){
-        var arrivedSnippetCache, snippetToCodeCache, beginOfLineSnippetCache, code, i, id, l;
+        var arrivedSnippetGroupCache, snippetToGroupIdCache, snippetGroupCoverLineCache,
+            snippetGroupToCodeCache, code, i, id, l, t, groupId, currentArrivedSnippetGroupFlag;
 
-        arrivedSnippetCache = {}; // 已到达的代码碎片池（所有代码）
-        snippetToCodeCache = {}; // 代码碎片到代码的映射池
-        beginOfLineSnippetCache = {}; // 处于行首的代码碎片池（所有代码）
+        arrivedSnippetGroupCache = {}; // 已到达的碎片组（所有代码）
+        snippetToGroupIdCache = {}; // 碎片到碎片组的映射（所有代码）
+        snippetGroupCoverLineCache = {}; // 碎片组覆盖代码行数（所有代码）
+        snippetGroupToCodeCache = {}; // 碎片组到代码的映射
+        currentArrivedSnippetGroupFlag = 1; // 当前已到达的代码碎片组标识    0:未到达  1:已到达  2,4,8.. 其他扩展
 
         return {
-            arrivedSnippetPut: function( id ){
-                if( !arrivedSnippetCache[ id ] ){
-                    arrivedSnippetCache[ id ] = 1;
+            snippetGroupCreate: function( code, snippetIds ){
+                groupId = util.nid();
+                for( i = 0, l = snippetIds.length; i < l; i ++ )
+                    snippetToGroupIdCache[ snippetIds[ i ] ] = groupId;
+                snippetGroupToCodeCache[ groupId ] = code;
+                return groupId;
+            },
 
-                    if( beginOfLineSnippetCache[ id ] && ( code = snippetToCodeCache[ id ] ) ){
-                        code.arriveRowsCount ++;
+            arrivedSnippetGroupFlagSet: function( flagNum ){
+                currentArrivedSnippetGroupFlag = flagNum;
+            },
+
+            arrivedSnippetGroupPut: function( groupId ){
+                t = arrivedSnippetGroupCache[ groupId ];
+
+                if( !( t & currentArrivedSnippetGroupFlag ) ){
+                    arrivedSnippetGroupCache[ groupId ] = ( t + currentArrivedSnippetGroupFlag ) || 
+                        currentArrivedSnippetGroupFlag;
+
+                    if( snippetGroupCoverLineCache[ groupId ] ){
+                        code = snippetGroupToCodeCache[ groupId ];
+                        code.arriveRowsCount += snippetGroupCoverLineCache[ groupId ];
                         code.lastModified = util.time();
+                        snippetGroupCoverLineCache[ groupId ] = 0;
                     }
                 }
             },
 
-            arrivedSnippetGet: function( id ){
-                return arrivedSnippetCache[ id ];
+            arrivedSnippetGroupDelete: function( groupId, flagNum ){
+                t = arrivedSnippetGroupCache[ groupId ];
+                if( t == flagNum )
+                    arrivedSnippetGroupCache[ groupId ] = 1;
+                else if( t & flagNum )
+                    arrivedSnippetGroupCache[ groupId ] -= flagNum;
             },
 
-            snippetToCodePut: function( id, codeIns ){
-                if( !snippetToCodeCache[ id ] )
-                    snippetToCodeCache[ id ] = codeIns;
+            arrivedSnippetGet: function( snippetId ){
+                return arrivedSnippetGroupCache[ snippetToGroupIdCache[ snippetId ] ];
             },
 
-            snippetToCodeGet: function( id ){
-                return snippetToCodeCache[ id ];
+            snippetGroupToCodeGet: function( groupId ){
+                return snippetGroupToCodeCache[ groupId ];
             },
 
-            beginOfLineSnippetPut: function( /* id, id, ... */ ){
-                for( i = 0, l = arguments.length; i < l; i ++ )
-                    if( !beginOfLineSnippetCache[ id = arguments[ i ] ] )
-                        beginOfLineSnippetCache[ id ] = 1;
-            },
-
-            beginOfLineSnippetGet: function( id ){
-                return beginOfLineSnippetCache[ id ];
+            snippetGroupCoverLineAdd: function( snippetId ){
+                groupId = snippetToGroupIdCache[ snippetId ];
+                snippetGroupCoverLineCache[ groupId ] = 
+                    ++ snippetGroupCoverLineCache[ groupId ] || 1;
             }
         }
     }();
 
     var Decorate = host.Decorate = function( window, document ){
         var Element, appendChild, insertBefore, getAttribute, check, checklist, scriptElements, i, l;
-            // __tracker__Cache, a;
 
         Element = window.Element.prototype;
         appendChild = Element.appendChild;
@@ -2481,23 +2598,10 @@ void function( window, factory ){
         util.forEach( checklist, function( object ){
             check( object, "appendChild" );
             check( object, "insertBefore" );
-            // check( object, "getAttribute" );
         } );
 
-        // __tracker__Cache = {};
-
-        window.__tracker__ = function( id /* , id, id, ... */ ){
-            // a = join.call( arguments, "," );
-            // if( __tracker__Cache[ a ] )
-            //     return ;
-            // __tracker__Cache[ a ] = 1;
-            // for( i = 0, l = arguments.length; i < l; i ++ )
-            //     StatusPool.arrivedSnippetPut( arguments[ i ] );
-            i = 0;
-            l = arguments.length;
-            do{
-                StatusPool.arrivedSnippetPut( arguments[ i ++ ] );
-            }while( i < l );
+        window.__tracker__ = function( groupId ){
+            StatusPool.arrivedSnippetGroupPut( groupId );
         };
 
         window.__trackerError__ = function( codeId, msg ){
@@ -2588,16 +2692,80 @@ void function( window, factory ){
     }( host );
 
     var Plugins = Tracker.Plugins = function(){
-        return {
-            addOn: function( name, fn ){
-                fn.call( this, CodeList, View );
+        var klass, instCache;
+
+        klass = function( name ){
+            instCache[ name ] = this;
+            this.activeFuze = promise.fuze();
+            this.startUpFuze = promise.fuze();
+        };
+
+        klass.prototype = Event.bind( {
+            onStartUp: function( fn ){
+                // this.startUpFuze( util.bind( fn, this ) );
+                Plugins.onControllerLoad( util.bind( fn, this ) );
             },
 
-            addStyle: function( text ){
-                this.onControllerLoad( function(){
-                    var document, style;
+            onActive: function( fn ){
+                if( this.activeFuze.fired )
+                    this.activeFuze( fn );
+                this.on( "active", fn );
+            }
+        } );
 
-                    document = View.ControlFrame.getWindow( "tracker_controller" ).document;
+        instCache = {};
+
+        return {
+            // prepare for a plugin, use in this script.
+            prepare: function( config ){
+                var name, type, define, inst, label, bodyId, setuped, started;
+
+                name = config.name;
+                type = config.type;
+                define = config.define; // plugin define source
+                inst = new klass( name );
+
+                if( type == "TopPanel" ){
+                    label = config.label;
+                    bodyId = config.bodyId;
+
+                    this.addPanel( name, label, function(){
+                        this.innerHTML = "<div id='" + bodyId + "'></div>";
+                        inst.body = this.firstChild;
+                    }, util.bind( function(){
+                        if( !setuped )
+                            setuped = true,
+                            this.setup( define );
+
+                        // if( !started )
+                        //     started = true,
+                        //     inst.startUpFuze.fire();
+
+                        if( !inst.actived )
+                            inst.activeFuze.fire(),
+                            inst.fire( "active" );
+                    }, this ) );
+                }
+            },
+
+            // define a plugin, use in a separate script.
+            addOn: function( name, fn ){
+                var inst, window, document;
+
+                window = View.ControlFrame.getWindow( "tracker_controller" );
+                document = window.document;
+
+                if( inst = instCache[ name ] )
+                    fn.call( inst, window, document );
+                else
+                    throw new Error( "illegal plugin name." );
+            },
+
+            // for appending a style tag to 'ControlPanel' view.
+            addStyle: function( text ){
+                this.onControllerLoad( function( window, document ){
+                    var style;
+
                     style = document.createElement( "style" );
                     style.type = "text/css";
                     style.appendChild( document.createTextNode( text ) );
@@ -2606,17 +2774,27 @@ void function( window, factory ){
                 } );
             },
 
-            addPanel: function( title, panelDefine, activeHandler ){
-                this.onControllerLoad( function(){
-                    var window, document, topNav, panels, titleEl, panelEl, meIndex;
+            // for appending a top bar item to 'ControlPanel' view.
+            addPanel: function( name, title, panelDefine, activeHandler ){
 
-                    window = View.ControlFrame.getWindow( "tracker_controller" );
-                    document = window.document;
+                if( typeof title == "function" ){ // missing argument 'name'
+                    activeHandler = panelDefine;
+                    panelDefine = title;
+                    title = name;
+                    name = null;
+                }
+
+                this.onControllerLoad( function( window, document ){
+                    var topNav, panels, titleEl, panelEl, meIndex;
+
                     topNav = document.getElementById( "top-nav" );
                     panels = document.getElementById( topNav.getAttribute( "data-target" ) );
-
                     titleEl = document.createElement( "li" );
                     titleEl.className = "relative";
+
+                    if( name )
+                        titleEl.setAttribute( "data-name", name );
+                    
                     titleEl.innerHTML = "<a href='' onclick='return false'>" + title + "</a>";
                     topNav.appendChild( titleEl );
 
@@ -2635,22 +2813,31 @@ void function( window, factory ){
                 } );
             },
 
-            setup: function( src ){
+            // for setup a plugin.
+            setup: function( pluginSrc ){
                 var script;
 
                 script = host.createElement( "script" );
+                script.charset = "utf-8";
                 script.type = "text/javascript";
-                script.src = src;
+                script.src = pluginSrc;
 
                 host.head.appendChild( script );
             },
 
-            // privates
+            // ::: privates :::
             onControllerLoad: function( fn ){
-                if( controllerOnLoad.fired )
-                    controllerOnLoad( fn );
+                var f = function(){
+                    var window, document;
+                    window = View.ControlFrame.getWindow( "tracker_controller" );
+                    document = window.document;
+                    fn.call( this, window, document );
+                }
 
-                View.ControlFrame.on( "controllerLoad", fn );
+                if( controllerOnLoad.fired )
+                    controllerOnLoad( f );
+
+                View.ControlFrame.on( "controllerLoad", f );
             }
         }
     }();
@@ -2658,12 +2845,12 @@ void function( window, factory ){
     var pageBaseUrl = path.getBase( host );
     var pageBaseProtocol = pageBaseUrl.match( /^(\w+):/ )[ 1 ];
 
-    // business logic
     void function(){
-        var currentCodeId, updateInterval, codes, pluginsUrlBase;
+        var currentCodeId, codes, pluginsUrlBase, pageComments;
 
         controllerOnLoad = promise.fuze();
         pluginsUrlBase = "http://www.ucren.com/tracker/cache.php?file=./plugins/";
+        pageComments = util.getHtmlComments( host.documentElement );
 
         View.ControlFrame.pageBuilder( function( html ){
             var pm = new promise,
@@ -2672,12 +2859,23 @@ void function( window, factory ){
                 srcPropertyRegx = / src=["']([^"']+)["']/,
                 typePropertyRegx = / type=["']([^"']+)["']/,
                 scriptRegx = /(<script\b [^>]*src=["']([^"']+)["'][^>]*>)\s*(<\/script>)/gi,
-                ieConditionalCommentsRegx = /<!--\[if .*IE.*\]>[\s\S]*?<!\[endif\]-->/gi,
+                // ieConditionalCommentsRegx = /<!--\[if .*IE.*\]>[\s\S]*?-->/gi,
+                // blankHtmlCommentRegx = /<!--\s*-->/g,
                 firstTagRegx = /(<[^>]+>)/,
-                pageStartingOf = "<script> parent.document.Decorate( window, document ); </script>";
+                pageStartingOf = "<script> parent.document.Decorate( window, document ); </script>",
+                lineBreakRegx = /\r\n|[\r\n]/g,
+                a, b, i, l, r;
 
             util.request( location.href, charset ).then( function( html ){
-                html = html.response.replace( ieConditionalCommentsRegx, "" );
+                html = html.response;
+
+                for( i = 0, l = pageComments.length; i < l; i ++ ){
+                    r = "<!--" + pageComments[ i ] + "-->";
+                    a = r.replace( lineBreakRegx, "\r\n" );
+                    b = r.replace( lineBreakRegx, "\n" );
+                    html = html.replace( a, "" ).replace( b, "" );
+                }
+
                 AsynStringReplacer.replace( html, allScriptTagRegx, 
                     function( raw, openTag, content, closeTag ){
                         var pm, code;
@@ -2769,21 +2967,8 @@ void function( window, factory ){
 
         View.ControlFrame.controllerBuilder( View.ControlPanel.htmlBuilder );
 
-        // View.ControlFrame.on( "pageLoad", function( window, document ){
-            // var base, head;
-
-            // TODO: 如果页面本身已有 base 标签？
-            // base = document.createElement( "base" );
-            // head = document.head || document.getElementsByTagName( "head" )[0];
-            // base.setAttribute( "target", "tracker_main" );
-            // head.appendChild( base );
-
-            // Event.add( window, "unload", function(){
-            //     location.assign( location.href );
-            // } );
-        // } );
-
-        View.ControlFrame.on( "controllerLoad", function( window, document ){
+        View.ControlFrame.on( {
+            "controllerLoad": function( window, document ){
             View.ControlPanel.bindWindow( window );
             View.ControlPanel.addCode( codes = CodeList.list() );
             View.ControlPanel.eventBuilder();
@@ -2792,20 +2977,40 @@ void function( window, factory ){
             if( currentCodeId )
                 View.ControlPanel.showCodeDetail( currentCodeId );
 
-            document.getElementById( "top-nav" ).tabEvent.on( "active", function( index ){
-                View.ControlPanel.setControlPower( index > 0 );
+                document.getElementById( "top-nav" ).tabEvent.on( "active", function( index, name ){
+                    var b;
+
+                    View.ControlPanel.setControlPower( b = index > 0, b );
+
+                    if( name == "code-list" )
+                        View.ControlPanel.showCodeDetail( false );
             } );
+            },
+
+            "hide": function(){
+                View.ControlPanel.autoUpdateCodeStop();
+            },
+
+            "show": function(){
+                View.ControlPanel.autoUpdateCodeStart();
+            }
         } );
 
-        View.ControlFrame.on( "hide", function(){
-            // TODO: clearInterval 了，检查一下有哪个地方继续启动
-            clearInterval( updateInterval );
-        } );
+        View.ControlPanel.actions( function( be ){
+            be = function( action ){
+                return function(){
+                    if( View.ControlFrame.getMode() == "embed" && 
+                        View.ControlPanel.activeTab() > 0 )
+                        View.ControlPanel.activeTab( 0 );
+                    View.ControlFrame[ action ]();
+                };
+            };
 
-        View.ControlPanel.actions( {
-            "frame#close": util.bind( View.ControlFrame.hide, View.ControlFrame ),
-            "frame#toggle": util.bind( View.ControlFrame.toggleMode, View.ControlFrame )
-        } );
+            return {
+                "frame#close": be( "hide" ),
+                "frame#toggle": be( "toggleMode" )
+            }
+        }() );
 
         host.TrackerGlobalEvent.on( "TrackerJSLoad", function(){
             controllerOnLoad( util.bind( View.ControlFrame.show, View.ControlFrame ) );
@@ -2817,6 +3022,8 @@ void function( window, factory ){
 
         controllerOnLoad( function( window, document ){
             var waitTime, loadingEl;
+
+            global.Tracker = Tracker;
 
             global.onbeforeunload = function(){
                 var startTime = util.time();
@@ -2836,23 +3043,14 @@ void function( window, factory ){
             loadingEl.style.display = "block";
             
             util.onCpuFree( function(){
+                waitTime.innerHTML = "(100.000000 %)";
                 loadingEl.style.height = "0";
                 setTimeout( function(){
                     loadingEl.parentNode.removeChild( loadingEl );
                 }, 5e2 );
             }, function( t ){
-                waitTime.innerHTML = "(" + (t / 1000).toFixed( 3 ) + "s)";
-            } );
-
-            updateInterval = setInterval( function(){
-                if( !codes )
-                    return ;
-
-                util.forEach( codes, function( code ){
-                    if( !code.lastUpdate || code.lastUpdate < code.lastModified )
-                        View.ControlPanel.updateCode( code );
+                waitTime.innerHTML = "(" + ( 1e2 - 1e2 / max( t, 1e2 ) ).toFixed( 6 ) + "%)";
                 } );
-            }, 3e3 );
 
             host.TrackerGlobalEvent.on( "bootstrap: dropdown.open", function(){
                 if( View.ControlPanel.activeTab() == 0 )
@@ -2877,13 +3075,26 @@ void function( window, factory ){
         } );
 
             setTimeout( function(){
-                Plugins.setup( pluginsUrlBase + "general.js&version=20130429" + Math.random() );
+                Plugins.prepare( {
+                    name: "general",
+                    type: "TopPanel",
+                    define: pluginsUrlBase + "general.js&version=20130514",
+                    label: "&#32508;&#21512;&#32467;&#26524;",
+                    bodyId: "plugin-general-page"
+                } );
+
+                Plugins.prepare( {
+                    name: "watch",
+                    type: "TopPanel",
+                    define: pluginsUrlBase + "watch.js&version=20130514",
+                    label: "&#27963;&#21160;&#30417;&#35270;&#22120;",
+                    bodyId: "plugin-watch-page"
+                } );
             }, 5e2 );
         } );
     }();
-} );
 
-/*
+    /*
   Copyright (C) 2013 Thaddee Tyl <thaddee.tyl@gmail.com>
   Copyright (C) 2012 Ariya Hidayat <ariya.hidayat@gmail.com>
   Copyright (C) 2012 Mathias Bynens <mathias@qiwi.be>
@@ -2912,20 +3123,10 @@ void function( window, factory ){
   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+    */
 
     void function (root, factory) {
-        'use strict';
-
-        // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js,
-        // Rhino, and plain browser loading.
-        if (typeof define === 'function' && define.amd) {
-            define(['exports'], factory);
-        } else if (typeof exports !== 'undefined') {
-            factory(exports);
-        } else {
-            factory((root.esprima = root.document.esprima = {}));
-        }
+        factory( root.esprima = root.document.esprima = {} );
     }(this, function (exports) {
         'use strict';
 
@@ -6915,7 +7116,7 @@ void function( window, factory ){
         }());
     });
 
-/**
+    /**
  * combocodegen.js ( based on escodegen )
  * @author dron
  * @create 2013-03-09
@@ -7217,19 +7418,21 @@ void function( window, factory ){
             return wrapTrackerDelimiter( "/* TRACKERINJECTJS */" + content );
         }
 
-        function injectCodeFragmentTrace( id /* , id, id, .. */ ){
-            return injectAssistedCode( "__tracker__(" + _join.call( arguments, "," ) + ");" );
+        function injectCodeFragmentTrace( idArray ){
+            var groupId = StatusPool.snippetGroupCreate.call( StatusPool, currentCode, idArray );
+            return injectAssistedCode( "__tracker__(" + groupId + ");" );
         }
 
-        function injectCodeFragmentTraceWithReturn( id /* , id, id, .. */ ){
-            return injectAssistedCode( "__tracker__(" + _join.call( arguments, "," ) + ")" );
+        function injectCodeFragmentTraceWithReturn( idArray ){
+            var groupId = StatusPool.snippetGroupCreate.call( StatusPool, currentCode, idArray );
+            return injectAssistedCode( "__tracker__(" + groupId + ")" );
         }
 
         function wrapCodeFragmentHtml( fragment, id ){
             // if( !snippetsIdSet[ id ] )
             //     snippetsIdSet[ id ] = 1;
 
-            StatusPool.snippetToCodePut( id, currentCode );
+            // StatusPool.snippetToCodePut( id, currentCode );
 
             return wrapTrackerDelimiter( "<!-- TRACKERINJECTHTML --><span id=ckey-" + id + ">" ) + fragment +
                 wrapTrackerDelimiter( "<!-- TRACKERINJECTHTML --></span>" );
@@ -8496,6 +8699,7 @@ void function( window, factory ){
                 result.push(
                     injectAssistedCode( ", __trackerTempVariable__ = " ),
                     injectCodeFragmentTraceWithReturn( id ),
+                    // injectCodeFragmentTrace( id ),
                     semicolon
                 );
 
@@ -9333,3 +9537,4 @@ void function( window, factory ){
         exports.traverse = traverse;
         exports.attachComments = attachComments;
     }, this );
+} );

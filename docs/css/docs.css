@@ -77,7 +77,7 @@ header .container{
 
 .nav li.active .icon-chevron-right,
 .nav li.active a:hover .icon-chevron-right {
-    background-image: url(../../bootstrap/img/glyphicons-halflings-white.png);
+    background-image: url(./bootstrap/img/glyphicons-halflings-white.png);
     opacity: 1;
 }
 
@@ -168,6 +168,10 @@ header .container{
     opacity: 1;
     height: auto;
     padding: 1em 0;
+}
+
+#changelog-content .latest{
+    color: #090;
 }
 
 footer{

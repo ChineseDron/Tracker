@@ -15,12 +15,21 @@ $( function(){
 
     var loadChangelog = function(){
         var data;
+
+        var formatDescription = function( text ){
+            text = text.split( "|" );
+            for( var i = 0, l = text.length; i < l; i ++ )
+                text[ i ] = "<li>" + text[ i ] + "</li>";
+            return "<ul>" + text.join( "" ) + "</ul>";
+        };
+
         return function(){
             if( !data ) $.get( "./changelog.json", function( json ){
                 data = json;
-                data.forEach( function( item ){
-                    $changelogTable.append( "<tr><td>" + item.version + "</td><td>" + 
-                        item.description + "</td></tr>" );
+                data.forEach( function( item, index ){
+                    $changelogTable.append( "<tr" +  ( index > 0 ? "" : " class='latest'" )  + "><td>" +
+                        item.version + "</td><td>" + formatDescription( item.description ) + 
+                        "</td></tr>" );
                 } );
             } );  
         };
@@ -53,18 +62,22 @@ $( function(){
     var $changelog = $( "#changelog-content" );
     var $changelogTable = $( "tbody", $changelog );
 
-    $( ".expand-changelog" ).click( function(){
-        var $this = $( this );
-        if( $this.data( "expanded" ) ){
-            $this.html( "+ 展开" );
-            $changelog.removeClass( "show" );
-            $this.removeData( "expanded" );
-        }else{
-            $this.html( "- 收起" );
+    var showChangeLog = function( bool ){
+        var $btn = $( ".expand-changelog" );
+        if( bool ){
+            $btn.html( "- 收起" );
             $changelog.addClass( "show" );
-            $this.data( "expanded", "1" );
+            $btn.data( "expanded", "1" );
             loadChangelog();
+        }else{
+            $btn.html( "+ 展开" );
+            $changelog.removeClass( "show" );
+            $btn.removeData( "expanded" );
         }
+    }
+
+    $( ".expand-changelog" ).click( function(){
+        showChangeLog( !$( this ).data( "expanded" ) );
     } );
 
     var uid = randomWord( 8 );
@@ -89,4 +102,18 @@ $( function(){
     $( "img" ).lazyload();
 
     $( ".recommend" ).click( openShareLink );
+
+    $( window ).on( "hashchange", function(){
+        var fn = function(){
+            if( location.hash == "#changelog" )
+                showChangeLog( true );
+        };
+        return fn(), fn;
+    }() );
+
+    $( ".setup-fehelper" ).click( function( e ){
+        window.open('http://www.baidufe.com/fehelper/install.html', 
+        'fehelper-install',
+        'height=360,width=500,toolbar=no,menubar=no,scrollbars=no,resizable=no,location=no,status=no');
+    } );
 } );

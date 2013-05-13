@@ -2,43 +2,53 @@
  * General Plugin
  * @version 1.0
  * @author dron
- * @create 2012-04-21
+ * @create 2013-04-21
  */
 
 // TODO: 需要更新文档
 
 Tracker.Plugins.addOn( "general", function(){
-    var CodeList, template, styles, template, data, calculate, render, update, eventDelegate, 
-        i, l, r, q, window, document, util, tmpl, initPanel, onActive;
+    var CodeList, template, template, data, calculate, render, update, eventDelegate, 
+        i, l, r, q, util, tmpl, now, window, document, mainBody, mainBodyId;
 
     util = Tracker.util;
     tmpl = util.tmpl;
     CodeList = Tracker.CodeList;
 
-    styles = [
-        "#general-toolbar{ height: 42px; background-color: #fafafa; border-bottom: 1px solid #d5d5d5; }",
-        "#general-toolbar li{ display: block; float: left; }",
-        "#general-toolbar li.button-like{ padding: 5px 0 0 5px; }",
-        "#general-toolbar li.first{ padding-left: 30px; }",
-        "#general-body{ position: absolute; top: 43px; bottom: 0; left: 0; right: 0; padding: 10px 30px; }",
-        "#general-body .table{ margin-bottom: 30px; width: 900px; }",
-        "#general-body .table td{ position: relative; }",
-        "#general-body .table td .ellipsisable{ position: absolute; left: 5px; top: 5px; right: 5px; bottom: 5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }",
-        "#general-body .unit{ font-style: italic; font-weight: 400; }",
-        "#general-body .close-up{ position: relative; top: -4px; }",
-        "#general-body .low{ color: #ff814e; }",
-        "#general-body .high{ color: #2bb027; }",
-        "#general-body .close-up b{ font-family: Constantia, Georgia; font-size: 24px; font-weight: 400; position: absolute; }"
-    ].join( "" );
+    now = function( time ){
+        time = new Date();
+        time = [ time.getFullYear(), time.getMonth() + 1, time.getDate() ].join( "-" ) + " " +
+            [ time.getHours(), time.getMinutes(), time.getSeconds() ].join( ":" );
+        time = time.replace( /\b(\d)\b/g, "0$1" );
+        return time;
+    };
+
+    Tracker.Plugins.addStyle( [
+        "#plugin-general-page .toolbar{ height: 42px; background-color: #fafafa; border-bottom: 1px solid #d5d5d5; }",
+        "#plugin-general-page .toolbar li{ display: block; float: left; }",
+        "#plugin-general-page .toolbar li.button-like{ padding: 5px 0 0 5px; }",
+        "#plugin-general-page .toolbar li.text-like{ padding: 12px 0 0 20px; line-height: 20px; }",
+        "#plugin-general-page .toolbar li.first{ padding-left: 30px; }",
+        "#plugin-general-page .body{ position: absolute; top: 43px; bottom: 0; left: 0; right: 0; padding: 10px 30px; }",
+        "#plugin-general-page .body .table{ margin-bottom: 30px; width: 900px; table-layout:fixed; }",
+        "#plugin-general-page .body .table td{  }",
+        "#plugin-general-page .body .table td .ellipsisable{ width: 100%; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }",
+        "#plugin-general-page .body .unit{ font-style: italic; font-weight: 400; }",
+        "#plugin-general-page .body .close-up{ position: relative; top: -4px; }",
+        "#plugin-general-page .body .low{ color: #ff814e; }",
+        "#plugin-general-page .body .high{ color: #2bb027; }",
+        "#plugin-general-page .body .close-up b{ font-family: Constantia, Georgia; font-size: 24px; font-weight: 400; position: absolute; }"
+    ].join( "" ) );
 
     template = {
         page: tmpl( [
-            "<ul id='general-toolbar' class='unstyled clearfix'>",
+            "<ul class='toolbar unstyled clearfix'>",
                 "<li class='first button-like'>",
                     "<button class='btn' action='update'>&#21047;&#26032;</button>",
                 "</li>",
+                "<li class='text-like muted'>&#26368;&#21518;&#26356;&#26032;&#26102;&#38388;&#65306;<%= now() %></li>",
             "</ul>",
-            "<div id='general-body' class='scrollable'>",
+            "<div id='<%= mainBodyId %>' class='body scrollable'>",
                 "<% if( count > 0 ){ %>",
                     "<h5>&#24403;&#21069;&#32593;&#39029;&#20849;&#21253;&#21547; <%= count %> &#20010;&#33050;&#26412;&#36164;&#28304;&#65306;<%= embedCount %> &#20010;&#20869;&#23884;&#65292;<%= linkCount %> &#20010;&#22806;&#38142;&#25991;&#20214;&#65292;<%= appendCount %> &#20010;&#21160;&#24577;&#21152;&#36733;&#12290;</h5>",
                     "<table class='table table-bordered table-striped'>",
@@ -194,7 +204,9 @@ Tracker.Plugins.addOn( "general", function(){
         totalSize: 0,
 
         totalLoadConsum: 0,
-        totalRunConsum: 0
+        totalRunConsum: 0,
+
+        now: now
     };
 
     data = new data;
@@ -256,12 +268,14 @@ Tracker.Plugins.addOn( "general", function(){
             q = CodeList.list().slice( 0 );
             q.sort( runConsum );
             data.runConsumTableData = q.slice( 0, data.showCodeCount );      
+
+            mainBodyId = data.mainBodyId = util.id();
         }
     }();
 
-    render = function( text ){
-        document.getElementById( "plugin-general-page" ).innerHTML = text || template.page( data );
-    };
+    render = util.bind( function( text ){
+        this.body.innerHTML = text || template.page( data );
+    }, this );
 
     update = function(){
         calculate();
@@ -280,25 +294,17 @@ Tracker.Plugins.addOn( "general", function(){
                 Tracker.View.ControlPanel.activeTab( "code-list" );
                 Tracker.View.ControlPanel.showCodeDetail( codeId );
             }else if( action == "update" ){
-                document.getElementById( "general-body" ).innerHTML = "loading...";
-                setTimeout( update, 1e2 );
+                document.getElementById( mainBodyId ).innerHTML = "loading...";
+                window.setTimeout( update, 1e2 );
             }
         } );
     };
 
-    initPanel = function(){
-        window = Tracker.View.ControlFrame.getWindow( "tracker_controller" );
-        document = window.document;
-        this.innerHTML = "<div id='plugin-general-page'></div>";
-        eventDelegate( document.getElementById( "plugin-general-page" ) );
-        // update();
-    };
+    this.onStartUp( function( win, doc ){
+        window = win;
+        document = doc;
+        eventDelegate( this.body );
+    } );
 
-    onActive = function(){
-        update();
-    };
-
-    this.addStyle( styles );
-    this.addPanel( "&#32508;&#21512;&#32467;&#26524;", initPanel, onActive );
-
+    this.onActive( update );
 } );
