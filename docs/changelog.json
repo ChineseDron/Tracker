@@ -1,4 +1,5 @@
 [
+    { "version": "1.9.1", "description": "改进 controller.css 由 less 构建|修复 getHtmlComments 筛选节点时的错误|修复 getWindow 不能正确获取的错误|修复 script 内容溢出到网页上的错误" },
     { "version": "1.9.0", "description": "新增代码标记高亮支持|新增“活动监视器”插件|屏蔽窗口模式下的 command+R 刷新" },
     { "version": "1.8.9", "description": "调整插件机制（插件 API 暂未对开发者公开）" },
     { "version": "1.8.8", "description": "优化部分业务逻辑|修正代码列表不能正确更新的错误" },

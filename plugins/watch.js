@@ -139,10 +139,11 @@ Tracker.Plugins.addOn( "watch", function(){
 
             activeCodeCache.add( code.id );
 
-            // TODO: unicode 编码
             log( "发现新的活动代码在 " + ( code.fullUrl || code.fileName ) + 
                 "&nbsp; <a href='#' action='show-code' data-code-id='" + code.id + 
                 "' onclick='return false;'>查看</a>" );
+        }else{
+            log( "发现新的活动代码在 " + groupId );
         }
     };
 

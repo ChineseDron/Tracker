@@ -1,9 +1,26 @@
 /** 
  * Tracker Analyzer
- * @version 1.8.9
+ * @version 1.9.1
  * @author dron
  * @create 2012-12-22
  */
+
+// TODO: 优化解析速度，思路：外链文件与内嵌代码同时
+// TODO: http://bj.house.sina.com.cn/ 广告都不显示了
+// TODO: 网页综述   [ ] 包含有错的脚本  [ ] 包含动态插入的脚本
+// TODO: 全局搜索
+// TODO: 导出报表
+// TODO: 新提示：请注意：当前页面已经跳走，Tracker 不再处于监控状态
+// TODO: 用 showModalDialog 改造 onbeforeunload，并且加入开关“保持这个选择”
+// TODO: weibo.com 的解析速度还要继续优化
+// TODO: 移除所有插入的 script 标签
+// TODO: 统一排查一下各部分 charset 的设置，考虑是否移除 unicode，或者上语言包
+// TODO: 数字、英文字体：DINWeb
+// TODO: 文档太久没更新了
+
+// TODO: 父窗口的 url 需要和 iframe 页的 url 保持同步（hashchage 时才有效果）
+
+// TODO: http://stackoverflow.com/questions/10343913/how-to-create-a-web-worker-from-a-string 不能被 frame
 
 void function( window, factory ){
     var host;
@@ -13,8 +30,9 @@ void function( window, factory ){
     if( window != window.parent )
         return ;
 
-    if( /msie/i.test( navigator.userAgent ) )
+    if( /msie (6|7)/i.test( navigator.userAgent ) ){
         return ;
+    }
 
     if( !host.TrackerGlobalEvent )
         factory( window );
@@ -24,7 +42,7 @@ void function( window, factory ){
 }( this, function( window ){
     var global, host, location, slice, floor, max, ceil, push, join, version, controllerOnLoad;
 
-    version = "1.8.9";
+    version = "1.9.1";
     global = window;
     host = global.document;
     location = global.location;
@@ -219,7 +237,7 @@ void function( window, factory ){
 
                     if( node.nodeType == cn )
                         result.push( node.nodeValue );
-                    else if( c = node.childNodes, l = c.length )
+                    else if( ( c = node.childNodes ) && ( l = c.length ) )
                         for( i = 0; i < l; i ++ )
                             push.apply( result, f( c[ i ] ) );
                     
@@ -907,7 +925,7 @@ void function( window, factory ){
 
             getExecutiveCode: function( scriptElementIndex ){
                 var code, inst, a;
-
+                
                 code = this.code;
                 inst = this.CodeInstance;
                 code = code.replace( viewHtmlRegx, "" );
@@ -952,7 +970,7 @@ void function( window, factory ){
                 //     if( firstId )
                 //         StatusPool.beginOfLineSnippetPut( firstId[1] );
                 // } );
-
+                
                 util.forEach( lines, function( line ){
                     if( firstId = line.match( lineFirstIdRegx ) )
                         StatusPool.snippetGroupCoverLineAdd( firstId[ 1 ] );
@@ -1025,25 +1043,25 @@ void function( window, factory ){
                 frameset: util.tmpl( [
                     "<!DOCTYPE html>",
                     "<html>",
-                    "<head>",
+                        "<head>",
                             "<meta charset='<%= charset %>'>",
-                        "<meta name='description' content='ucren-tracker-frame'>",
+                            "<meta name='description' content='ucren-tracker-frame'>",
                             "<title><%= title %></title>",
                             "<style type='text/css'>",
                                 "html, body{ margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; position: relative; }",
                                 ".fullness{ position: absolute; left: 0; right: 0; top: 0; bottom: 0; }",
                                 "#wrapper{}",
-                                "#tracker_controller{ z-index: 10; }",
-                                "#tracker_page{ top: 43px; z-index: 20; background-color: #fff; }",
-                                "body.control-power-mode #tracker_page{ z-index: 0; }",
-                                "body.hidden-page-mode #tracker_page{ display: none; }",
+                                "#tracker_controller_ct{ z-index: 10; }",
+                                "#tracker_page_ct{ top: 43px; z-index: 20; background-color: #fff; }",
+                                "body.control-power-mode #tracker_page_ct{ z-index: 0; }",
+                                "body.hidden-page-mode #tracker_page_ct{ display: none; }",
                                 "iframe{ border: 0; width: 100%; height: 100%; }",
                             "</style>",
-                    "</head>",
+                        "</head>",
                         "<body>",
                             "<div id='wrapper' class='fullness'>",
-                                "<div id='tracker_controller' class='fullness'><iframe src='about:blank' name='tracker_controller' frameborder='no'></iframe></div>",
-                                "<div id='tracker_page' class='fullness'><iframe src='<%= url %>' name='tracker_page' frameborder='no'></iframe></div>",
+                                "<div id='tracker_controller_ct' class='fullness'><iframe src='about:blank' id='tracker_controller' name='tracker_controller' frameborder='no'></iframe></div>",
+                                "<div id='tracker_page_ct' class='fullness'><iframe src='<%= url %>' id='tracker_page' name='tracker_page' frameborder='no'></iframe></div>",
                             "</div>",
                         "</body>",
                     "</html>"
@@ -1057,7 +1075,7 @@ void function( window, factory ){
                         "<meta name='author' content='dron'>",
                         "<title>Tracker!</title>",
                         "<link href='<%= cachePhp %>./bootstrap/css/bootstrap.min.css&amp;version=2013041602' type='text/css' rel='stylesheet' />",
-                        "<link href='<%= cachePhp %>./controller-resources/controller.css&amp;version=20130514' type='text/css' rel='stylesheet' />",
+                        "<link href='<%= cachePhp %>./controller-resources/controller.css&amp;version=20130519' type='text/css' rel='stylesheet' />",
                     "</head>",
                     "<body>",
                         "<%= header %>",
@@ -1415,8 +1433,8 @@ void function( window, factory ){
                         var controller, page, window;
 
                         if( currentMode === "embed" ){
-                            controller = document.getElementById( "tracker_controller" ),
-                            page = document.getElementById( "tracker_page" ),
+                            controller = document.getElementById( "tracker_controller_ct" ),
+                            page = document.getElementById( "tracker_page_ct" ),
                             controller.style.display = "block",
                             page.style.top = "";
                         }else if( currentMode === "window" ){
@@ -1436,8 +1454,8 @@ void function( window, factory ){
                         var controller, page;
 
                         if( currentMode === "embed" )
-                            controller = document.getElementById( "tracker_controller" ),
-                            page = document.getElementById( "tracker_page" ),
+                            controller = document.getElementById( "tracker_controller_ct" ),
+                            page = document.getElementById( "tracker_page_ct" ),
                             controller.style.display = "none",
                             page.style.top = "0";
                         else if( currentMode === "window" )
@@ -1467,13 +1485,15 @@ void function( window, factory ){
 
                     getWindow: function( name ){
                         // name: tracker_main | tracker_page | tracker_controller
+                        var w;
+
                         if( !arguments.length || name === "tracker_main" )
-                            return window;     
+                            return window;
 
                         if( currentMode === "window" && name === "tracker_controller" )
                             return controlWindow;
-                        else
-                            return window.frames[ name ];
+                        else if( w = window.frames[ name ] )
+                            return window.document.getElementById( name ).contentWindow;
                     },
 
                     // privates
@@ -1493,7 +1513,7 @@ void function( window, factory ){
 
                                 this.write( "tracker_main", View.templates.frameset( {
                                     url: location.href,
-                                    title: document.title, 
+                                    title: document.title,
                                     charset: document.characterSet || "utf-8"
                                 } ) );
 
@@ -1566,9 +1586,9 @@ void function( window, factory ){
 
                             timer = setInterval( write, 1 );
                         }else{
-                        document.write( content );
-                        document.close();
-                    }
+                            document.write( content );
+                            document.close();    
+                        }
                     }
                 } );
             }(),
@@ -1805,15 +1825,15 @@ void function( window, factory ){
 
                     result = function( code, _focusOnFlag ){
                         init();
-
+                        
                         focusOnFlag = _focusOnFlag;
 
                         if( code.state == "empty" ){
                             codeEl.innerHTML = "<div class='empty-code'>" +
-                                    "&#20869;&#23481;&#20026;&#31354;</div>"; // 内容为空
+                                "&#20869;&#23481;&#20026;&#31354;</div>"; // 内容为空
                         }else if( code.state == "timeout" ){
                             codeEl.innerHTML = "<div class='timeout-code'>" +
-                                    "&#35299;&#26512;&#36229;&#26102;</div>"; // 解析超时
+                                "&#35299;&#26512;&#36229;&#26102;</div>"; // 解析超时
                         }else{
                             currentDisposeLines = code.linesViewHtml;
                             linesCount = currentDisposeLines.length;
@@ -1866,7 +1886,7 @@ void function( window, factory ){
                                 for( var i = 0, l = dropdowns.length; i < l; i ++ )
                                     if( util.hasClass( dropdowns[ i ], "open" ) )
                                         found = true,
-                                    util.removeClass( dropdowns[ i ], "open" );
+                                        util.removeClass( dropdowns[ i ], "open" );
 
                                 if( found )
                                     event && event.fire( "bootstrap: dropdown.close" );
@@ -2219,7 +2239,7 @@ void function( window, factory ){
                                 // command + R, F5
                                 if( ( e.metaKey && e.keyCode == 82 ) || e.keyCode == 116 ){
                                     if( View.ControlFrame.getMode() == "window" ){
-                                    e.preventDefault && e.preventDefault();
+                                        e.preventDefault && e.preventDefault();    
                                     }
                                 }
                                 
@@ -2290,12 +2310,12 @@ void function( window, factory ){
                                 if( this.scrollLeft == this.scrollWidth - this.clientWidth )
                                     this.scrollLeft -= 1;
 
-                            if( lastScrollLeft == this.scrollLeft )
-                                return ;
-                            
-                            var gutter = this.querySelector( ".gutter" );
-                            gutter.style.left = this.scrollLeft + "px";
-                            lastScrollLeft = this.scrollLeft;
+                                if( lastScrollLeft == this.scrollLeft )
+                                    return ;
+                                
+                                var gutter = this.querySelector( ".gutter" );
+                                gutter.style.left = this.scrollLeft + "px";
+                                lastScrollLeft = this.scrollLeft;
                             }
                         } );
 
@@ -2307,7 +2327,7 @@ void function( window, factory ){
                                 if( index == 0 )
                                     View.ControlPanel.showCode( currentSelectedCode );
                                 else if( index == 1 )
-                                View.ControlPanel.showCodeInfo( currentSelectedCode );
+                                    View.ControlPanel.showCodeInfo( currentSelectedCode );
                             }
 
                             var tabDescs = elementCodeToolbarInner.querySelectorAll( ".tab-desc" );
@@ -2557,7 +2577,7 @@ void function( window, factory ){
                     code.setType( "append" );
                     code.setState( "timeout" );
                     CodeList.add( code );
-                        fn.apply( me, args );
+                    fn.apply( me, args );
                     View.ControlPanel.addCode( code );
                 } );
 
@@ -2647,17 +2667,42 @@ void function( window, factory ){
         window.onbeforeunload = function(){
             var startTime = util.time();
             return function(){
-            Feedback.send();
-            var now = util.time();
+                Feedback.send();
+                var now = util.time();
                 if( now - startTime < 3e3 )
                     setTimeout( function(){
                         var h = window.location.hash;
                         window.location.href = ~h.indexOf( "#" ) ? h : "#" + h;
                     }, 0 );
-            while( util.time() - now < 500 );
+                while( util.time() - now < 500 );
             }  
         }();
     };
+
+    var HashSync = function(){
+        var outerHash, innerHash;
+
+        return function( windowOuter, windowInner ){
+            // outerHash = windowOuter.location.hash;
+            // innerHash = windowInner.location.hash;            
+
+            // windowInner.addEventListener( "hashchange", function(){
+            //     if( innerHash != this.location.hash ){
+            //         innerHash = this.location.hash;
+            //         if( outerHash != innerHash )
+            //             windowOuter.location.hash = innerHash;
+            //     }
+            // }, false );
+
+            // windowOuter.addEventListener( "hashchange", function(){
+            //     if( outerHash != this.location.hash ){
+            //         outerHash = this.location.hash;
+            //         if( outerHash != innerHash )
+            //             windowInner.location.hash = outerHash;                    
+            //     }
+            // } );
+        }
+    }();
 
     var Tracker = function( host ){
         var cmd = function( cmd ){
@@ -2937,9 +2982,9 @@ void function( window, factory ){
                                 code = new Code( url );
                                 code.setState( "timeout" );
                                 CodeList.add( code );
-                                    View.Loading.addProgress();
-                                    pm.resolve( raw );
-                                } );
+                                View.Loading.addProgress();
+                                pm.resolve( raw );
+                            } );
 
                             return pm;
                         }
@@ -2947,6 +2992,8 @@ void function( window, factory ){
                         View.Loading.hide();
                         util.delay( function(){
                             CodeList.sort();
+                            if( !~html.indexOf( "<html" ) )
+                                html = "<html>" + html;
                             pm.resolve( html.replace( firstTagRegx, "$1" + pageStartingOf ) );
                         } );
                     } );
@@ -2969,13 +3016,13 @@ void function( window, factory ){
 
         View.ControlFrame.on( {
             "controllerLoad": function( window, document ){
-            View.ControlPanel.bindWindow( window );
-            View.ControlPanel.addCode( codes = CodeList.list() );
-            View.ControlPanel.eventBuilder();
-            controllerOnLoad.fire( window, document );
+                View.ControlPanel.bindWindow( window );
+                View.ControlPanel.addCode( codes = CodeList.list() );
+                View.ControlPanel.eventBuilder();
+                controllerOnLoad.fire( window, document );
 
-            if( currentCodeId )
-                View.ControlPanel.showCodeDetail( currentCodeId );
+                if( currentCodeId )
+                    View.ControlPanel.showCodeDetail( currentCodeId );
 
                 document.getElementById( "top-nav" ).tabEvent.on( "active", function( index, name ){
                     var b;
@@ -2984,7 +3031,7 @@ void function( window, factory ){
 
                     if( name == "code-list" )
                         View.ControlPanel.showCodeDetail( false );
-            } );
+                } );
             },
 
             "hide": function(){
@@ -3050,7 +3097,7 @@ void function( window, factory ){
                 }, 5e2 );
             }, function( t ){
                 waitTime.innerHTML = "(" + ( 1e2 - 1e2 / max( t, 1e2 ) ).toFixed( 6 ) + "%)";
-                } );
+            } );
 
             host.TrackerGlobalEvent.on( "bootstrap: dropdown.open", function(){
                 if( View.ControlPanel.activeTab() == 0 )
@@ -3072,7 +3119,9 @@ void function( window, factory ){
             host.TrackerGlobalEvent.on( "bootstrap: dialog.close", function(){
                 if( View.ControlPanel.activeTab() == 0 )
                     View.ControlPanel.setControlPower( false );
-        } );
+            } );
+
+            HashSync( global, View.ControlFrame.getWindow( "tracker_page" ) );
 
             setTimeout( function(){
                 Plugins.prepare( {
@@ -3086,7 +3135,7 @@ void function( window, factory ){
                 Plugins.prepare( {
                     name: "watch",
                     type: "TopPanel",
-                    define: pluginsUrlBase + "watch.js&version=20130514",
+                    define: pluginsUrlBase + "watch.js&version=20130519",
                     label: "&#27963;&#21160;&#30417;&#35270;&#22120;",
                     bodyId: "plugin-watch-page"
                 } );
@@ -3095,34 +3144,34 @@ void function( window, factory ){
     }();
 
     /*
-  Copyright (C) 2013 Thaddee Tyl <thaddee.tyl@gmail.com>
-  Copyright (C) 2012 Ariya Hidayat <ariya.hidayat@gmail.com>
-  Copyright (C) 2012 Mathias Bynens <mathias@qiwi.be>
-  Copyright (C) 2012 Joost-Wim Boekesteijn <joost-wim@boekesteijn.nl>
-  Copyright (C) 2012 Kris Kowal <kris.kowal@cixar.com>
-  Copyright (C) 2012 Yusuke Suzuki <utatane.tea@gmail.com>
-  Copyright (C) 2012 Arpad Borsos <arpad.borsos@googlemail.com>
-  Copyright (C) 2011 Ariya Hidayat <ariya.hidayat@gmail.com>
+      Copyright (C) 2013 Thaddee Tyl <thaddee.tyl@gmail.com>
+      Copyright (C) 2012 Ariya Hidayat <ariya.hidayat@gmail.com>
+      Copyright (C) 2012 Mathias Bynens <mathias@qiwi.be>
+      Copyright (C) 2012 Joost-Wim Boekesteijn <joost-wim@boekesteijn.nl>
+      Copyright (C) 2012 Kris Kowal <kris.kowal@cixar.com>
+      Copyright (C) 2012 Yusuke Suzuki <utatane.tea@gmail.com>
+      Copyright (C) 2012 Arpad Borsos <arpad.borsos@googlemail.com>
+      Copyright (C) 2011 Ariya Hidayat <ariya.hidayat@gmail.com>
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are met:
+      Redistribution and use in source and binary forms, with or without
+      modification, are permitted provided that the following conditions are met:
 
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
 
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-  ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+      THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+      AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+      IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+      ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+      DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+      (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+      LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+      ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+      (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+      THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     */
 
     void function (root, factory) {
@@ -7117,10 +7166,10 @@ void function( window, factory ){
     });
 
     /**
- * combocodegen.js ( based on escodegen )
- * @author dron
- * @create 2013-03-09
- */
+     * combocodegen.js ( based on escodegen )
+     * @author dron
+     * @create 2013-03-09
+     */
     void function( factory, global ) {
         var parseConf, generateConf, host, escodegen;
         

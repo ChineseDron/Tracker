@@ -267,7 +267,7 @@ Tracker.Plugins.addOn( "general", function(){
 
             q = CodeList.list().slice( 0 );
             q.sort( runConsum );
-            data.runConsumTableData = q.slice( 0, data.showCodeCount );      
+            data.runConsumTableData = q.slice( 0, data.showCodeCount );
 
             mainBodyId = data.mainBodyId = util.id();
         }
@@ -279,13 +279,13 @@ Tracker.Plugins.addOn( "general", function(){
 
     update = function(){
         calculate();
-        render();  
+        render();
     };
 
     eventDelegate = function( el ){
         Tracker.Event.add( el, "click", function( e ){
             var target, action, codeId;
-            
+
             target = e.target;
             action = target.getAttribute( "action" );
             codeId = target.getAttribute( "data-code-id" );
